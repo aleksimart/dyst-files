@@ -40,12 +40,15 @@ public class Controller {
             for (;;) {
                 System.out.println("[SERVER]: Ready to accept connections");
                 Socket dstore = ss.accept();
+                System.out.println("[SERVER]: New connection from port " + dstore.getPort());
 
                 // From that point on call a connection
 
                 InputStream in = dstore.getInputStream();
 
+                System.out.println("[SERVER]: Waiting for the command");
                 BufferedReader inReader = new BufferedReader(new InputStreamReader(in));
+                System.out.println("[SERVER]: Command succsessfully read!");
 
                 String firstLine = inReader.readLine();
                 int firstSpace = firstLine.indexOf(" ");
@@ -79,14 +82,14 @@ public class Controller {
         return new String[] {};
     }
 
-    public static void init(String[] args) {
+    private static void init(String[] args) {
         if (args.length != 4) {
             System.err.println("Invalid number of args, expected: 4, but got: " + args.length);
             System.exit(1);
         }
 
         parseArgs(args[0], "port");
-        parseArgs(args[1], "replicaton factor");
+        parseArgs(args[1], "replication factor");
         parseArgs(args[2], "timeout period");
         parseArgs(args[3], "rebalance_period");
     }
@@ -111,7 +114,7 @@ public class Controller {
             }
 
         } catch (NumberFormatException e) {
-            System.err.println("Invalid replication factor, must be an integer");
+            System.err.println("Invalid " + name + ", must be an integer");
             e.printStackTrace();
             System.exit(1);
         } catch (IllegalArgumentException e) {
