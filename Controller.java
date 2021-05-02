@@ -2,8 +2,6 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 
-import jdk.internal.org.jline.utils.InputStreamReader;
-
 public class Controller {
 
     private static int cport;
@@ -78,7 +76,7 @@ public class Controller {
     }
 
     public static String[] list() {
-
+        return new String[] {};
     }
 
     public static void init(String[] args) {
