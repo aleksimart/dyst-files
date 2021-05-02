@@ -1,3 +1,3 @@
 # Distributed File System
 
-Simple file storage system written in Java
+Simple file storage and retrieval system written in Java
