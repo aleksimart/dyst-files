@@ -1,29 +1,138 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 
-public class FTServer {
+import jdk.internal.org.jline.utils.InputStreamReader;
+
+public class Controller {
+
+    private static int cport;
+    private static int R;
+    private static int timeout;
+    private static int rebalance_period;
+
+    private static ArrayList<Socket> dstores;
+
+    /**
+     * 3 arguments are passes when running the controller:
+     * <p>
+     * 1: cport : port to listen on <br>
+     * 2: R: replication factor <br>
+     * 3: timeout: timeout in milliseconds <br>
+     * 4: rebalance_period: how long to wait (in ms) to start the next rebalance
+     * operation
+     * </p>
+     */
     public static void main(String[] args) {
-        try {
-            // Create a server socket with port 4323
-            ServerSocket ss = new ServerSocket(4323);
-            for (;;) {
-                try {
-                    // Hangs here until the connection is accepted
-                    System.out.println("waiting for connection");
-                    Socket client = ss.accept();
-                    System.out.println("connected to: " + client.getInetAddress());
-                    FileThread thread = new FileThread(client);
-                    new Thread(thread).start();
 
-                } catch (Exception e) {
-                    System.out.println("error " + e);
+        // Initialise the arguments (Like a constructor)
+        init(args);
+
+        // Initialise the logger
+        try {
+            ControllerLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL);
+        } catch (IOException e) {
+            System.err.println("[SERVER]: Error:  issue with creating the log file");
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+        try {
+            ServerSocket ss = new ServerSocket(cport);
+            for (;;) {
+                System.out.println("[SERVER]: Ready to accept connections");
+                Socket dstore = ss.accept();
+
+                // From that point on call a connection
+
+                InputStream in = dstore.getInputStream();
+
+                BufferedReader inReader = new BufferedReader(new InputStreamReader(in));
+
+                String firstLine = inReader.readLine();
+                int firstSpace = firstLine.indexOf(" ");
+
+                switch (firstLine.substring(0, firstSpace)) {
+                    case Protocol.JOIN_TOKEN:
+                        System.out.println("This is a dstore");
+                        // TODO: This is a dstore, appropriate handler + log
+                        break;
+                    case Protocol.LIST_TOKEN:
+                    case Protocol.STORE_TOKEN:
+                    case Protocol.LOAD_TOKEN:
+                    case Protocol.LOAD_DATA_TOKEN:
+                    case Protocol.RELOAD_TOKEN:
+                    case Protocol.REMOVE_TOKEN:
+                        System.out.println("This is a client");
+                        // TODO: This is client, appropriate handler + log
+                        break;
+                    default:
+                        System.out.println("Invalid command");
+                        // TODO: This is an invalid command, should log it and ignore
                 }
             }
-        } catch (Exception e) {
-            System.out.println("error " + e);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
         }
     }
 
+    public static String[] list() {
+
+    }
+
+    public static void init(String[] args) {
+        if (args.length != 4) {
+            System.err.println("Invalid number of args, expected: 4, but got: " + args.length);
+            System.exit(1);
+        }
+
+        parseArgs(args[0], "port");
+        parseArgs(args[1], "replicaton factor");
+        parseArgs(args[2], "timeout period");
+        parseArgs(args[3], "rebalance_period");
+    }
+
+    private static void parseArgs(String arg, String name) {
+        try {
+            switch (name) {
+                case "port":
+                    cport = Integer.parseInt(arg);
+                    break;
+                case "replication factor":
+                    R = Integer.parseInt(arg);
+                    break;
+                case "timeout period":
+                    timeout = Integer.parseInt(arg);
+                    break;
+                case "rebalance_period":
+                    rebalance_period = Integer.parseInt(arg);
+                    break;
+                default:
+                    throw new Exception("Internal error, invalid arg: " + name);
+            }
+
+        } catch (NumberFormatException e) {
+            System.err.println("Invalid replication factor, must be an integer");
+            e.printStackTrace();
+            System.exit(1);
+        } catch (IllegalArgumentException e) {
+            System.err.println(e);
+            e.printStackTrace();
+            System.exit(1);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+    }
+
+    private void rebalance() {
+    }
+
+    /**
+     * Ignore this for now
+     */
     static class FileThread implements Runnable {
 
         Socket client;
