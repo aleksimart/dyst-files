@@ -41,36 +41,41 @@ public class Controller {
                 System.out.println("[SERVER]: Ready to accept connections");
                 Socket dstore = ss.accept();
                 System.out.println("[SERVER]: New connection from port " + dstore.getPort());
-                InputStream in = dstore.getInputStream();
-                // From that point on call a connection
-                System.out.println("[SERVER]: Waiting for the command");
-                BufferedReader inReader = new BufferedReader(new InputStreamReader(in));
+                System.out.println("[SERVER]: Transfering control to handler to determine the time of the connection");
+                new Thread(new ConnectionHandler(dstore)).start();
+                // InputStream in = dstore.getInputStream();
+                // // From that point on call a connection
+                // System.out.println("[SERVER]: Waiting for the command");
+                // BufferedReader inReader = new BufferedReader(new InputStreamReader(in));
 
-                String firstLine = inReader.readLine();
-                System.out.println("[SERVER]: Command succsessfully read!");
-                int firstSpace = firstLine.indexOf(" ");
+                // String firstLine = inReader.readLine();
+                // System.out.println("[SERVER]: Command succsessfully read!");
+                // int firstSpace = firstLine.indexOf(" ");
 
-                switch (firstLine.substring(0, firstSpace)) {
-                    case Protocol.JOIN_TOKEN:
-                        System.out.println("[SERVER]: new dstore just joined the ranks!\n[SERVER]: Declared port: "
-                                + firstLine.substring(firstSpace + 1));
-                        // TODO: This is a dstore, appropriate handler + log
-                        break;
-                    case Protocol.LIST_TOKEN:
-                    case Protocol.STORE_TOKEN:
-                    case Protocol.LOAD_TOKEN:
-                    case Protocol.LOAD_DATA_TOKEN:
-                    case Protocol.RELOAD_TOKEN:
-                    case Protocol.REMOVE_TOKEN:
-                        System.out.println("This is a client");
-                        // TODO: This is client, appropriate handler + log
-                        break;
-                    default:
-                        System.out.println("Invalid command");
-                        // TODO: This is an invalid command, should log it and ignore
-                }
+                // switch (firstLine.substring(0, firstSpace)) {
+                // case Protocol.JOIN_TOKEN:
+                // System.out.println("[SERVER]: new dstore just joined the ranks!\n[SERVER]:
+                // Declared port: "
+                // + firstLine.substring(firstSpace + 1));
+                // // TODO: This is a dstore, appropriate handler + log
+                // break;
+                // case Protocol.LIST_TOKEN:
+                // case Protocol.STORE_TOKEN:
+                // case Protocol.LOAD_TOKEN:
+                // case Protocol.LOAD_DATA_TOKEN:
+                // case Protocol.RELOAD_TOKEN:
+                // case Protocol.REMOVE_TOKEN:
+                // System.out.println("This is a client");
+                // // TODO: This is client, appropriate handler + log
+                // break;
+                // default:
+                // System.out.println("Invalid command");
+                // // TODO: This is an invalid command, should log it and ignore
+                // }
             }
-        } catch (IOException e) {
+        } catch (
+
+        IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
