@@ -12,7 +12,7 @@ public class Controller {
     private static ArrayList<Socket> dstores;
 
     /**
-     * 3 arguments are passes when running the controller:
+     * 3 arguments are passed when running the controller:
      * <p>
      * 1: cport : port to listen on <br>
      * 2: R: replication factor <br>
@@ -41,21 +41,19 @@ public class Controller {
                 System.out.println("[SERVER]: Ready to accept connections");
                 Socket dstore = ss.accept();
                 System.out.println("[SERVER]: New connection from port " + dstore.getPort());
-
-                // From that point on call a connection
-
                 InputStream in = dstore.getInputStream();
-
+                // From that point on call a connection
                 System.out.println("[SERVER]: Waiting for the command");
                 BufferedReader inReader = new BufferedReader(new InputStreamReader(in));
-                System.out.println("[SERVER]: Command succsessfully read!");
 
                 String firstLine = inReader.readLine();
+                System.out.println("[SERVER]: Command succsessfully read!");
                 int firstSpace = firstLine.indexOf(" ");
 
                 switch (firstLine.substring(0, firstSpace)) {
                     case Protocol.JOIN_TOKEN:
-                        System.out.println("This is a dstore");
+                        System.out.println("[SERVER]: new dstore just joined the ranks!\n[SERVER]: Declared port: "
+                                + firstLine.substring(firstSpace + 1));
                         // TODO: This is a dstore, appropriate handler + log
                         break;
                     case Protocol.LIST_TOKEN:
