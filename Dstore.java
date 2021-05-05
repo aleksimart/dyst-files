@@ -11,41 +11,63 @@ public class Dstore {
 	private static int port;
 	private static int cport;
 	private static int timeout;
+
+	private static PrintWriter pWriter;
+	private static BufferedReader reader;
+
 	private static File file_folder;
 
+	private static void printMes(String mes) {
+		System.out.println("[DSTORE]: " + mes);
+	}
+
+	private static void printErr(String mes) {
+		System.err.println("[DSTORE]: " + mes);
+	}
+
 	public static void main(String[] args) {
-		init(args);
+		initArgs(args);
 
 		try {
 			DstoreLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL, port);
 		} catch (IOException e) {
-			System.err.println("[DSTORE]: Error:  issue with creating the log file");
+			printErr("Error: issue with creating the log file");
 			e.printStackTrace();
 			System.exit(1);
 		}
 
 		try {
-			System.out
-					.println("[DSTORE]: Establishing connection with Controller on port " + cport + ", local address");
+			printMes("Establishing connection with Controller on port " + cport + ", local address");
 			InetAddress address = InetAddress.getLocalHost();
 			Socket connection = new Socket(address, cport, address, port);
-			System.out.println("[DSTORE]: Succesfully established connection! Local port: " + port);
+
+			printMes("Succesfully established connection! Local port: " + port);
 
 			PrintWriter pWriter = new PrintWriter(connection.getOutputStream(), true);
-			BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
-			System.out.println("[DSTORE]: Ready to accept commands");
-			for (;;) {
-				System.out.print("> ");
-				String mes = stdin.readLine();
-				pWriter.println(mes);
-			}
+			interactiveCommands();
+
+			connection.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(1);
 		}
 	}
 
-	private static void init(String[] args) {
+	private static void interactiveCommands() throws IOException {
+		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+		printMes("Ready to accept commands");
+		String mes;
+
+		System.out.print("> ");
+		while ((mes = reader.readLine()) != "quit") {
+			pWriter.println(mes);
+			System.out.print("> ");
+		}
+
+	}
+
+	private static void initArgs(String[] args) {
 		if (args.length != 4) {
 			System.err.println("Invalid number of args, expected: 4, but got: " + args.length);
 			System.exit(1);

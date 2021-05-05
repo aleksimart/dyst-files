@@ -4,57 +4,87 @@ import java.net.*;
 public class ConnectionHandler implements Runnable {
 	private Socket socket;
 	private BufferedReader reader;
+	private InputStream in;
 
 	public ConnectionHandler(Socket socket) {
 		this.socket = socket;
 		try {
-			reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+			in = socket.getInputStream();
+			reader = new BufferedReader(new InputStreamReader(in));
 		} catch (IOException e) {
-			System.err.println(
-					"[CONNECTION HANDLER " + socket.getPort() + "]: Failed to get the input steram of the connection");
+			printErr("Failed to get the input stream of the connection");
 			e.printStackTrace();
 			Thread.currentThread().interrupt();
 		}
 	}
 
+	public void printMes(String mes) {
+		System.out.println("[CONNECTION HANDLER: " + socket.getPort() + "]: " + mes);
+	}
+
+	public void printErr(String mes) {
+		System.err.println("[CONNECTION HANDLER: " + socket.getPort() + "]: " + mes);
+	}
+
 	@Override
 	public void run() {
-		System.out.println("[CONNECTION HANDLER: " + socket.getPort() + "]: Waiting for the command");
+		printMes("Waiting for the command");
 
 		String firstLine = "";
-
 		try {
 			firstLine = reader.readLine();
 		} catch (IOException e) {
-			System.err.println(
-					"[CONNECTION HANDLER: " + socket.getPort() + "]: Failed to read input from the connection");
+			printErr("Failed to read input from the connection");
 			e.printStackTrace();
 			Thread.currentThread().interrupt();
 		}
 
-		System.out.println("[CONNECTION HANDLER: " + socket.getPort() + "]: Command succsessfully read!");
-		int firstSpace = firstLine.indexOf(" ");
+		printMes("Command successfully read!");
 
-		// TODO: big assumption here that the space exists
-		switch (firstLine.substring(0, firstSpace)) {
+		// TODO: check the arg number
+		String[] command = firstLine.split(" ");
+		typeOfConnection(command);
+
+		closeConnection();
+	}
+
+	public void typeOfConnection(String[] command) {
+		switch (command[0]) {
 			case Protocol.JOIN_TOKEN:
-				System.out.println("[CONNECTION HANDLER: " + socket.getPort()
-						+ "]: new dstore just joined the ranks!\n[SERVER]: Declared port: "
-						+ firstLine.substring(firstSpace + 1));
-				// TODO: This is a dstore, appropriate handler + log
+				printMes("New dstore just joined the ranks!");
+				printMes("Declared port: " + command[1]);
+				Controller.addDstore(new DstoreHandler());
+				printMes("Dstore successfully added to the list!");
 				break;
+
 			case Protocol.LIST_TOKEN:
 			case Protocol.STORE_TOKEN:
 			case Protocol.LOAD_TOKEN:
 			case Protocol.LOAD_DATA_TOKEN:
 			case Protocol.RELOAD_TOKEN:
 			case Protocol.REMOVE_TOKEN:
-				System.out.println("This is a client");
+				printMes("New client attempts to join the network!");
+				if (!Controller.isEnoughDstores()) {
+					printErr("Cannot connect! Not enough dstores joined the network");
+				}
 				// TODO: This is client, appropriate handler + log
 				break;
 			default:
-				System.out.println("Invalid command");
+				printErr("Invalid command");
 				// TODO: This is an invalid command, should log it and ignore
+		}
+
+	}
+
+	public void closeConnection() {
+		try {
+			printMes("Closing down the connection");
+			socket.shutdownOutput();
+			socket.shutdownInput();
+			reader.close();
+			socket.close();
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
 	}
 
