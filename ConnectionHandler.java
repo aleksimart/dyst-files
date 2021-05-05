@@ -2,6 +2,8 @@ import java.io.*;
 import java.net.*;
 
 public class ConnectionHandler implements Runnable {
+	public static final String NAME = ConnectionHandler.class.getName();
+
 	private Socket socket;
 	private BufferedReader reader;
 	private InputStream in;
@@ -12,34 +14,26 @@ public class ConnectionHandler implements Runnable {
 			in = socket.getInputStream();
 			reader = new BufferedReader(new InputStreamReader(in));
 		} catch (IOException e) {
-			printErr("Failed to get the input stream of the connection");
+			TerminalLog.printErr(NAME, socket.getPort() + " - Failed to get the input stream of the connection");
 			e.printStackTrace();
 			Thread.currentThread().interrupt();
 		}
 	}
 
-	public void printMes(String mes) {
-		System.out.println("[CONNECTION HANDLER: " + socket.getPort() + "]: " + mes);
-	}
-
-	public void printErr(String mes) {
-		System.err.println("[CONNECTION HANDLER: " + socket.getPort() + "]: " + mes);
-	}
-
 	@Override
 	public void run() {
-		printMes("Waiting for the command");
+		TerminalLog.printMes(NAME, socket.getPort() + " - Waiting for the command");
 
 		String firstLine;
 		try {
 			firstLine = reader.readLine();
 			// TODO: check the arg number
-			ControllerLogger.getInstance().messageReceived(socket, firstLine);
+			// ControllerLogger.getInstance().messageReceived(socket, firstLine);
 			String[] command = firstLine.split(" ");
-			printMes("Command successfully read!");
+			TerminalLog.printMes(NAME, socket.getPort() + " - Command successfully read!");
 			typeOfConnection(command);
 		} catch (IOException e) {
-			printErr("Failed to read input from the connection");
+			TerminalLog.printErr(NAME, socket.getPort() + " - Failed to read input from the connection!");
 			e.printStackTrace();
 			Thread.currentThread().interrupt();
 		} finally {
@@ -51,11 +45,14 @@ public class ConnectionHandler implements Runnable {
 	public void typeOfConnection(String[] command) {
 		switch (command[0]) {
 			case Protocol.JOIN_TOKEN:
-				printMes("New dstore just joined the ranks!");
-				printMes("Declared port: " + command[1]);
-				Controller.addDstore(new DstoreHandler());
-				printMes("Dstore successfully added to the list!");
-				break;
+				TerminalLog.printMes(NAME, socket.getPort() + " - New dstore just joined the ranks!");
+				TerminalLog.printMes(NAME, socket.getPort() + " - Declared port: " + command[1]);
+				Controller.addDstore(new DstoreHandler(socket));
+				TerminalLog.printMes(NAME, socket.getPort() + " - Dstore successfully added to the list!");
+				while (true) {
+
+				}
+				// break;
 
 			case Protocol.LIST_TOKEN:
 			case Protocol.STORE_TOKEN:
@@ -63,14 +60,16 @@ public class ConnectionHandler implements Runnable {
 			case Protocol.LOAD_DATA_TOKEN:
 			case Protocol.RELOAD_TOKEN:
 			case Protocol.REMOVE_TOKEN:
-				printMes("New client attempts to join the network!");
+				TerminalLog.printMes(NAME, socket.getPort() + " - New client attempts to join the network!");
+
 				if (!Controller.isEnoughDstores()) {
-					printErr("Cannot connect! Not enough dstores joined the network");
+					TerminalLog.printErr(NAME,
+							socket.getPort() + " - Cannot connect! Not enough dstores joined the network");
 				}
 				// TODO: This is client, appropriate handler + log
 				break;
 			default:
-				printErr("Invalid command");
+				TerminalLog.printMes(NAME, socket.getPort() + " - Invalid command");
 				// TODO: This is an invalid command, should log it and ignore
 		}
 
@@ -78,7 +77,7 @@ public class ConnectionHandler implements Runnable {
 
 	public void closeConnection() {
 		try {
-			printMes("Closing down the connection");
+			TerminalLog.printMes(NAME, socket.getPort() + " - Closing down the connection");
 			socket.shutdownOutput();
 			socket.shutdownInput();
 			reader.close();

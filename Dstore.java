@@ -10,32 +10,16 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 public class Dstore {
-
-	private static final String DATE_FORMAT = "yyyy/MM/dd HH:mm:ss";
 	private static int port;
 	private static int cport;
 	private static int timeout;
+	public static final String NAME = Dstore.class.getName();
 
 	private static PrintWriter pWriter;
 	private static BufferedReader reader;
 	private static Socket socket;
 
 	private static File file_folder;
-
-	private static void printMes(String mes) {
-		String timeStamp = new SimpleDateFormat(DATE_FORMAT).format(Calendar.getInstance().getTime());
-		System.out.println("[DSTORE: " + timeStamp + "]: " + mes);
-	}
-
-	private static void printErr(String mes) {
-		String timeStamp = new SimpleDateFormat(DATE_FORMAT).format(Calendar.getInstance().getTime());
-		System.err.println("[DSTORE: " + timeStamp + "]: " + mes);
-	}
-
-	private static String stampMes(String mes) {
-		String timeStamp = new SimpleDateFormat(DATE_FORMAT).format(Calendar.getInstance().getTime());
-		return (timeStamp + ": " + mes);
-	}
 
 	public static void main(String[] args) {
 		initArgs(args);
@@ -55,42 +39,43 @@ public class Dstore {
 		try {
 			DstoreLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL, port);
 		} catch (IOException e) {
-			printErr("Error: issue with creating the log file");
+			TerminalLog.printErr(NAME, "Error: issue with creating the log file");
 			e.printStackTrace();
 			System.exit(1);
 		}
 	}
 
 	private static void initSocket() throws IOException {
-		printMes("Establishing connection with Controller on port " + cport + ", local address");
+		TerminalLog.printMes(NAME, "Establishing connection with Controller on port " + cport + ", local address");
 		InetAddress address = InetAddress.getLocalHost();
 
-		pWriter = new PrintWriter(socket.getOutputStream(), true);
-		reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		socket = new Socket(address, cport, address, port);
 		socket.setSoTimeout(timeout);
 
-		printMes("Succesfully established connection! Local port: " + port);
+		pWriter = new PrintWriter(socket.getOutputStream(), true);
+		reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+
+		TerminalLog.printMes(NAME, "Succesfully established connection! Local port: " + port);
 	}
 
 	// TODO: Might just ask to send the response as LIST
 	private static void joinController() throws IOException {
-		printMes("Attempting to join the controller");
+		TerminalLog.printMes(NAME, "Attempting to join the controller");
 		String message = Protocol.JOIN_TOKEN + " " + port;
 		pWriter.println(message);
-		DstoreLogger.getInstance().messageSent(socket, stampMes(message));
+		DstoreLogger.getInstance().messageSent(socket, TerminalLog.stampMes(message));
 
 		String response;
 
 		try {
 			response = reader.readLine();
 			if (response == null) {
-				printErr("Connection Lost");
+				TerminalLog.printErr(NAME, "Connection Lost");
 			} else {
-				printMes("Server: " + response);
+				TerminalLog.printMes(NAME, "Server: " + response);
 			}
 		} catch (SocketTimeoutException e) {
-			printMes("Joined Successfully!");
+			TerminalLog.printMes(NAME, "Joined Successfully!");
 		}
 
 	}
@@ -98,7 +83,7 @@ public class Dstore {
 	private static void interactiveCommands() throws IOException {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-		printMes("Ready to accept commands");
+		TerminalLog.printMes(NAME, "Ready to accept commands");
 		String mes;
 
 		System.out.print("> ");
@@ -107,7 +92,7 @@ public class Dstore {
 			System.out.print("> ");
 
 			if (reader.readLine() == Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN) {
-				printErr("Not enough dstores joined yet, try again later!");
+				TerminalLog.printErr(NAME, "Not enough dstores joined yet, try again later!");
 				break;
 			}
 		}
@@ -116,7 +101,7 @@ public class Dstore {
 
 	private static void initArgs(String[] args) {
 		if (args.length != 4) {
-			System.err.println("Invalid number of args, expected: 4, but got: " + args.length);
+			TerminalLog.printErr(NAME, "Invalid number of args, expected: 4, but got: " + args.length);
 			System.exit(1);
 		}
 

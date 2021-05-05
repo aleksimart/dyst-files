@@ -4,6 +4,8 @@ import java.util.ArrayList;
 
 public class Controller {
 
+    public static final String NAME = Controller.class.getName();
+
     private static int cport;
     private static int R;
     private static int timeout;
@@ -24,23 +26,15 @@ public class Controller {
     public static void main(String[] args) {
 
         initArgs(args);
-
-        try {
-            ControllerLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL);
-            System.out.println("[SERVER]: Successfully created log file!");
-        } catch (IOException e) {
-            System.err.println("[SERVER]: Error:  issue with creating the log file");
-            e.printStackTrace();
-            System.exit(1);
-        }
+        initLogger();
 
         try {
             ServerSocket ss = new ServerSocket(cport);
             for (;;) {
-                System.out.println("[SERVER]: Ready to accept connections");
+                TerminalLog.printMes(NAME, "Ready to accept connections");
                 Socket dstore = ss.accept();
-                System.out.println("[SERVER]: New connection from port " + dstore.getPort());
-                System.out.println("[SERVER]: Transfering control to handler to determine the type of the connection");
+                TerminalLog.printMes(NAME, "New connection from port " + dstore.getPort());
+                TerminalLog.printMes(NAME, "Transfering control to handler to determine the type of the connection");
                 new Thread(new ConnectionHandler(dstore)).start();
             }
         } catch (IOException e) {
@@ -49,13 +43,32 @@ public class Controller {
         }
     }
 
-    public static String[] list() {
-        return new String[] {};
+    synchronized public static void addDstore(DstoreHandler dstore) {
+        dstores.add(dstore);
+        ControllerLogger.getInstance().dstoreJoined(dstore.getSocket(), dstore.getSocket().getPort());
+    }
+
+    private void rebalance() {
+    }
+
+    public static boolean isEnoughDstores() {
+        return dstores.size() >= R;
+    }
+
+    private static void initLogger() {
+        try {
+            ControllerLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL);
+            TerminalLog.printMes(NAME, "Successfully created log file!");
+        } catch (IOException e) {
+            TerminalLog.printErr(NAME, "Error: issue with creating the log file");
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 
     private static void initArgs(String[] args) {
         if (args.length != 4) {
-            System.err.println("Invalid number of args, expected: 4, but got: " + args.length);
+            TerminalLog.printErr(NAME, "Invalid number of args, expected: 4, but got: " + args.length);
             System.exit(1);
         }
 
@@ -85,28 +98,19 @@ public class Controller {
             }
 
         } catch (NumberFormatException e) {
-            System.err.println("Invalid " + name + ", must be an integer");
+            TerminalLog.printErr(NAME, "Invalid " + name + ", must be an integer");
             e.printStackTrace();
             System.exit(1);
         } catch (IllegalArgumentException e) {
-            System.err.println(e);
+            TerminalLog.printErr(NAME, e.toString());
             e.printStackTrace();
             System.exit(1);
         } catch (Exception e) {
+            TerminalLog.printErr(NAME, e.toString());
             e.printStackTrace();
             System.exit(1);
         }
 
     }
 
-    public static void addDstore(DstoreHandler dstore) {
-        dstores.add(dstore);
-    }
-
-    private void rebalance() {
-    }
-
-    public static boolean isEnoughDstores() {
-        return dstores.size() >= R;
-    }
 }
