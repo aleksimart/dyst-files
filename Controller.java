@@ -27,6 +27,7 @@ public class Controller {
 
         try {
             ControllerLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL);
+            System.out.println("[SERVER]: Successfully created log file!");
         } catch (IOException e) {
             System.err.println("[SERVER]: Error:  issue with creating the log file");
             e.printStackTrace();

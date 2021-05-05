@@ -43,7 +43,7 @@ public class Dstore {
 
 			printMes("Succesfully established connection! Local port: " + port);
 
-			PrintWriter pWriter = new PrintWriter(connection.getOutputStream(), true);
+			pWriter = new PrintWriter(connection.getOutputStream(), true);
 			interactiveCommands();
 
 			connection.close();

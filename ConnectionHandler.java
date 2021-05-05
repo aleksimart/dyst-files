@@ -30,22 +30,22 @@ public class ConnectionHandler implements Runnable {
 	public void run() {
 		printMes("Waiting for the command");
 
-		String firstLine = "";
+		String firstLine;
 		try {
 			firstLine = reader.readLine();
+			// TODO: check the arg number
+			ControllerLogger.getInstance().messageReceived(socket, firstLine);
+			String[] command = firstLine.split(" ");
+			printMes("Command successfully read!");
+			typeOfConnection(command);
 		} catch (IOException e) {
 			printErr("Failed to read input from the connection");
 			e.printStackTrace();
 			Thread.currentThread().interrupt();
+		} finally {
+			closeConnection();
 		}
 
-		printMes("Command successfully read!");
-
-		// TODO: check the arg number
-		String[] command = firstLine.split(" ");
-		typeOfConnection(command);
-
-		closeConnection();
 	}
 
 	public void typeOfConnection(String[] command) {
