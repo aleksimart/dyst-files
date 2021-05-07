@@ -21,6 +21,10 @@ public class Connection {
 		return out;
 	}
 
+	public int getLocalPort() {
+		return socket.getLocalPort();
+	}
+
 	public void close() throws IOException {
 		in.close();
 		out.close();
