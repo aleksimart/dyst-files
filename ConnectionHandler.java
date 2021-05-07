@@ -4,17 +4,17 @@ import java.net.*;
 public class ConnectionHandler implements Runnable {
 	public static final String NAME = ConnectionHandler.class.getName();
 
+	private Connection connection;
 	private Socket socket;
-	private BufferedReader reader;
-	private InputStream in;
+	private BufferedReader in;
 
 	public ConnectionHandler(Socket socket) {
-		this.socket = socket;
 		try {
-			in = socket.getInputStream();
-			reader = new BufferedReader(new InputStreamReader(in));
+			connection = new Connection(socket);
+			in = connection.getIn();
 		} catch (IOException e) {
-			TerminalLog.printErr(NAME, socket.getPort() + " - Failed to get the input stream of the connection");
+			TerminalLog.printErr(NAME,
+					socket.getPort() + " - Failed to get the input or output stream of the connection");
 			e.printStackTrace();
 			Thread.currentThread().interrupt();
 		}
@@ -26,20 +26,27 @@ public class ConnectionHandler implements Runnable {
 
 		String firstLine;
 		try {
-			firstLine = reader.readLine();
-			// TODO: check the arg number
-			// ControllerLogger.getInstance().messageReceived(socket, firstLine);
+			firstLine = in.readLine();
 			String[] command = firstLine.split(" ");
+			checkArgs(command);
 			TerminalLog.printMes(NAME, socket.getPort() + " - Command successfully read!");
 			typeOfConnection(command);
 		} catch (IOException e) {
 			TerminalLog.printErr(NAME, socket.getPort() + " - Failed to read input from the connection!");
 			e.printStackTrace();
-			Thread.currentThread().interrupt();
 		} finally {
-			closeConnection();
+			try {
+				TerminalLog.printMes(NAME, socket.getPort() + " - Closing down the connection");
+				connection.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
+	}
 
+	// TODO: implement
+	public void checkArgs(String[] command) {
+		TerminalLog.printMes(NAME, socket.getPort() + " - verifying validity of the command");
 	}
 
 	public void typeOfConnection(String[] command) {
@@ -53,7 +60,6 @@ public class ConnectionHandler implements Runnable {
 
 				}
 				// break;
-
 			case Protocol.LIST_TOKEN:
 			case Protocol.STORE_TOKEN:
 			case Protocol.LOAD_TOKEN:
@@ -74,17 +80,4 @@ public class ConnectionHandler implements Runnable {
 		}
 
 	}
-
-	public void closeConnection() {
-		try {
-			TerminalLog.printMes(NAME, socket.getPort() + " - Closing down the connection");
-			socket.shutdownOutput();
-			socket.shutdownInput();
-			reader.close();
-			socket.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
 }

@@ -1,3 +1,7 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
@@ -20,5 +24,24 @@ public class TerminalLog {
 	public static String stampMes(String mes) {
 		String timeStamp = new SimpleDateFormat(DATE_FORMAT).format(Calendar.getInstance().getTime());
 		return (timeStamp + ": " + mes);
+	}
+
+	public static void interactiveCommands(String name, PrintWriter out) throws IOException {
+		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+		TerminalLog.printMes(name, "Ready to accept commands");
+		String mes;
+
+		System.out.print("> ");
+		while ((mes = reader.readLine()) != "quit") {
+			out.println(mes);
+			System.out.print("> ");
+
+			if (reader.readLine() == Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN) {
+				TerminalLog.printErr(name, "Not enough dstores joined yet, try again later!");
+				break;
+			}
+		}
+
 	}
 }

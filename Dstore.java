@@ -15,8 +15,9 @@ public class Dstore {
 	private static int timeout;
 	public static final String NAME = Dstore.class.getName();
 
-	private static PrintWriter pWriter;
-	private static BufferedReader reader;
+	private static Connection connection;
+	private static PrintWriter out;
+	private static BufferedReader in;
 	private static Socket socket;
 
 	private static File file_folder;
@@ -26,9 +27,8 @@ public class Dstore {
 		initLogger();
 
 		try {
-			initSocket();
+			initConnection();
 			joinController();
-			// socket.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(1);
@@ -45,15 +45,16 @@ public class Dstore {
 		}
 	}
 
-	private static void initSocket() throws IOException {
+	private static void initConnection() throws IOException {
 		TerminalLog.printMes(NAME, "Establishing connection with Controller on port " + cport + ", local address");
 		InetAddress address = InetAddress.getLocalHost();
 
 		socket = new Socket(address, cport, address, port);
-		socket.setSoTimeout(timeout);
+		socket.setSoTimeout(timeout); // TODO: is this needed
 
-		pWriter = new PrintWriter(socket.getOutputStream(), true);
-		reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		connection = new Connection(socket);
+		out = connection.getOut();
+		in = connection.getIn();
 
 		TerminalLog.printMes(NAME, "Succesfully established connection! Local port: " + port);
 	}
@@ -62,13 +63,13 @@ public class Dstore {
 	private static void joinController() throws IOException {
 		TerminalLog.printMes(NAME, "Attempting to join the controller");
 		String message = Protocol.JOIN_TOKEN + " " + port;
-		pWriter.println(message);
+		out.println(message);
 		DstoreLogger.getInstance().messageSent(socket, TerminalLog.stampMes(message));
 
 		String response;
 
 		try {
-			response = reader.readLine();
+			response = in.readLine();
 			if (response == null) {
 				TerminalLog.printErr(NAME, "Connection Lost");
 			} else {
@@ -76,25 +77,6 @@ public class Dstore {
 			}
 		} catch (SocketTimeoutException e) {
 			TerminalLog.printMes(NAME, "Joined Successfully!");
-		}
-
-	}
-
-	private static void interactiveCommands() throws IOException {
-		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-
-		TerminalLog.printMes(NAME, "Ready to accept commands");
-		String mes;
-
-		System.out.print("> ");
-		while ((mes = reader.readLine()) != "quit") {
-			pWriter.println(mes);
-			System.out.print("> ");
-
-			if (reader.readLine() == Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN) {
-				TerminalLog.printErr(NAME, "Not enough dstores joined yet, try again later!");
-				break;
-			}
 		}
 
 	}
