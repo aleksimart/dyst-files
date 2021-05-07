@@ -19,6 +19,7 @@ public class Dstore {
 	private static PrintWriter out;
 	private static BufferedReader in;
 	private static Socket socket;
+	private static DstoreServer server;
 
 	private static File file_folder;
 
@@ -29,10 +30,36 @@ public class Dstore {
 		try {
 			initConnection();
 			joinController();
+			startServer();
+
+			String controllerCommands;
+			while ((controllerCommands = in.readLine()) != null) {
+
+			}
+
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.exit(1);
+		} finally {
+			if (serverCreated() && server.isOpen()) {
+				server.close();
+			}
+
+			try {
+				socket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
+	}
+
+	private static void startServer() {
+		server = new DstoreServer(port);
+		new Thread(server).start();
+	}
+
+	private static boolean serverCreated() {
+		return (server != null);
 	}
 
 	private static void initLogger() {
@@ -58,6 +85,18 @@ public class Dstore {
 
 		TerminalLog.printMes(NAME, "Succesfully established connection! Local port: " + port);
 	}
+
+	// private static void establishServer() {
+	// ServerSocket ss = new ServerSocket(cport);
+	// for (;;) {
+	// TerminalLog.printMes(NAME, "Ready to accept connections");
+	// Socket dstore = ss.accept();
+	// TerminalLog.printMes(NAME, "New connection from port " + dstore.getPort());
+	// TerminalLog.printMes(NAME, "Transfering control to handler to determine the
+	// type of the connection");
+	// new Thread(new ConnectionHandler(dstore)).start();
+	// }
+	// }
 
 	// TODO: Might just ask to send the response as LIST
 	private static void joinController() throws IOException {
