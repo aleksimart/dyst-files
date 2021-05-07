@@ -10,7 +10,7 @@ public class Connection {
 	public Connection(Socket socket) throws IOException {
 		this.socket = socket;
 		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		out = new PrintWriter(socket.getOutputStream());
+		out = new PrintWriter(socket.getOutputStream(), true);
 	}
 
 	public BufferedReader getIn() {
