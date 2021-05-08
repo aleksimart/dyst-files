@@ -1,17 +1,21 @@
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.PriorityBlockingQueue;
 
 public class Controller {
-
     public static final String NAME = Controller.class.getName();
 
+    // Passed arguments
     private static int cport;
     private static int R;
     private static int timeout;
     private static int rebalance_period;
 
-    private static ArrayList<DstoreHandler> dstores = new ArrayList<>();
+    private static ConcurrentHashMap<String, Index> indexMap;
+    private static PriorityBlockingQueue<DstoreProps> dstores;
 
     /**
      * 3 arguments are passed when running the controller:
@@ -28,6 +32,9 @@ public class Controller {
         initArgs(args);
         initLogger();
 
+        indexMap = new ConcurrentHashMap<>();
+        dstores = new PriorityBlockingQueue<>(R, Comparator.comparingInt(DstoreProps::getSize));
+
         try {
             ServerSocket ss = new ServerSocket(cport);
             for (;;) {
@@ -35,7 +42,7 @@ public class Controller {
                 Socket dstore = ss.accept();
                 TerminalLog.printMes(NAME, "New connection from port " + dstore.getPort());
                 TerminalLog.printMes(NAME, "Transfering control to handler to determine the type of the connection");
-                new Thread(new ConnectionHandler(dstore)).start();
+                new Thread(new ConnectionHandler(dstore, ConnectionHandler.ServerType.CONTROLLER)).start();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -43,12 +50,39 @@ public class Controller {
         }
     }
 
-    synchronized public static void addDstore(DstoreHandler dstore) {
-        dstores.add(dstore);
-        ControllerLogger.getInstance().dstoreJoined(dstore.getSocket(), dstore.getSocket().getPort());
+    public static void addDstore(int port) {
+        dstores.put(new DstoreProps(port));
+    }
+
+    public static Integer[] getDstores() {
+
+        if (!isEnoughDstores()) {
+            return null;
+        }
+
+        Integer[] storingDstores = new Integer[R];
+        ArrayList<DstoreProps> props = new ArrayList<>();
+
+        // Get them out first
+        for (int i = 0; i < R; i++) {
+            DstoreProps value = dstores.remove();
+            storingDstores[i] = value.getPort();
+            props.add(value);
+        }
+
+        // put them back in
+        for (DstoreProps prop : props) {
+            dstores.put(prop);
+        }
+
+        return storingDstores;
     }
 
     private void rebalance() {
+    }
+
+    public static void addIndex(String filename, int filesize) {
+        indexMap.put(filename, new Index(filesize));
     }
 
     public static boolean isEnoughDstores() {
@@ -111,6 +145,10 @@ public class Controller {
             System.exit(1);
         }
 
+    }
+
+    public static int getR() {
+        return R;
     }
 
 }

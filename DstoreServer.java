@@ -9,7 +9,7 @@ public class DstoreServer implements Runnable {
 	private int port;
 	private ServerSocket ss;
 
-	private static final String NAME = Class.class.getName();
+	private static final String NAME = DstoreServer.class.getName();
 
 	public DstoreServer(int port) {
 		this.port = port;
@@ -25,7 +25,7 @@ public class DstoreServer implements Runnable {
 				TerminalLog.printMes(NAME, "New connection from port " + client.getPort());
 				TerminalLog.printMes(NAME, "Transfering control to handler to determine the type of the connection");
 				// TODO distinguish between controller connection and dstore connection
-				new Thread(new ConnectionHandler(client)).start();
+				new Thread(new ConnectionHandler(client, ConnectionHandler.ServerType.DSTORE)).start();
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -42,7 +42,7 @@ public class DstoreServer implements Runnable {
 	}
 
 	public boolean isOpen() {
-		return (ss != null);
+		return (ss != null && !ss.isClosed());
 	}
 
 }

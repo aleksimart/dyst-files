@@ -21,8 +21,8 @@ public class Connection {
 		return out;
 	}
 
-	public int getLocalPort() {
-		return socket.getLocalPort();
+	public int getPort() {
+		return socket.getPort();
 	}
 
 	public void close() throws IOException {

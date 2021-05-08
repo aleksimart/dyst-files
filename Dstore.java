@@ -114,7 +114,7 @@ public class Dstore {
 
 			// Close the socket connected to the controller
 			try {
-				socket.close();
+				connection.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -145,20 +145,6 @@ public class Dstore {
 		out.println(message);
 		DstoreLogger.getInstance().messageSent(socket, TerminalLog.stampMes(message));
 		TerminalLog.printMes(NAME, "Joined Successfully!");
-
-		// String response;
-
-		// try {
-		// response = in.readLine();
-		// if (response == null) {
-		// TerminalLog.printErr(NAME, "Connection Lost");
-		// } else {
-		// TerminalLog.printMes(NAME, "Server: " + response);
-		// }
-		// } catch (SocketTimeoutException e) {
-		// TerminalLog.printMes(NAME, "Joined Successfully!");
-		// }
-
 	}
 
 	/**

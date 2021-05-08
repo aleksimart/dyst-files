@@ -1,6 +1,3 @@
 public interface Handler {
-	public void handle(){
-
-	}
-
+	public void handle();
 }

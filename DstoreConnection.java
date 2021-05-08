@@ -1,0 +1,6 @@
+/**
+ * DstoreConnection
+ */
+public class DstoreConnection {
+
+}
