@@ -22,4 +22,8 @@ public class DstoreProps {
 	public void setPort(int port) {
 		this.port = port;
 	}
+
+	public void addFile(int filesize) {
+		size += filesize;
+	}
 }

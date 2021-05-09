@@ -30,7 +30,7 @@ public class DstoreHandler implements Handler {
 	public void join() {
 		TerminalLog.printMes(NAME, connection.getPort() + " - New dstore just joined the ranks!");
 		TerminalLog.printMes(NAME, connection.getPort() + " - Declared port: " + args[0]);
-		Controller.addDstore(Integer.parseInt(args[0]));
+		Controller.addDstore(connection, Integer.parseInt(args[0]));
 		TerminalLog.printMes(NAME, connection.getPort() + " - Dstore successfully added to the list!");
 	}
 

@@ -1,3 +1,5 @@
+import java.util.concurrent.CompletableFuture;
+
 /**
  * ClientHandler
  */
@@ -13,16 +15,18 @@ public class ClientHandler implements Handler {
 		this.connection = connection;
 
 		for (int i = 1; i < args.length; i++) {
-			args[i] = this.args[i - 1];
+			this.args[i - 1] = args[i];
 		}
 	}
 
 	public void handle() {
 		switch (command) {
 			case Protocol.STORE_TOKEN:
+				System.out.println("Arg 1: " + args[0] + " Args 2: " + args[1]);
 				storeFile(args[0], Integer.parseInt(args[1]));
+				break;
 			default:
-				System.err.println("Err, not implemented yet, or wrong protocol: " + command);
+				System.err.println("Client: Err, not implemented yet, or wrong protocol: " + command);
 		}
 	}
 
@@ -33,8 +37,10 @@ public class ClientHandler implements Handler {
 	 * </p>
 	 */
 	public void storeFile(String name, int filesize) {
-		Controller.addIndex(name, filesize);
-		Integer[] ports = Controller.getDstores();
+		Controller.addIndex(name, filesize, connection);
+
+		// TODO: check for the value is null
+		Integer[] ports = Controller.getDstores(filesize);
 
 		StringBuilder command = new StringBuilder();
 		command.append(Protocol.STORE_TO_TOKEN);
@@ -44,6 +50,6 @@ public class ClientHandler implements Handler {
 			command.append(port);
 		}
 
-		connection.getOut().println(command);
+		connection.getOutWriter().println(command);
 	}
 }

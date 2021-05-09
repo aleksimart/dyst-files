@@ -4,21 +4,27 @@ import java.io.*;
 public class Connection {
 	public Socket socket;
 
-	public BufferedReader in;
-	public PrintWriter out;
+	private BufferedReader inReader;
+	private PrintWriter outWriter;
+	private InputStream in;
+	private OutputStream out;
 
 	public Connection(Socket socket) throws IOException {
 		this.socket = socket;
-		in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-		out = new PrintWriter(socket.getOutputStream(), true);
+
+		in = socket.getInputStream();
+		out = socket.getOutputStream();
+
+		inReader = new BufferedReader(new InputStreamReader(in));
+		outWriter = new PrintWriter(out, true);
 	}
 
-	public BufferedReader getIn() {
-		return in;
+	public BufferedReader getInReader() {
+		return inReader;
 	}
 
-	public PrintWriter getOut() {
-		return out;
+	public PrintWriter getOutWriter() {
+		return outWriter;
 	}
 
 	public int getPort() {
@@ -26,9 +32,21 @@ public class Connection {
 	}
 
 	public void close() throws IOException {
-		in.close();
-		out.close();
+		inReader.close();
+		outWriter.close();
 		socket.close();
+	}
+
+	public InputStream getIn() {
+		return in;
+	}
+
+	public OutputStream getOut() {
+		return out;
+	}
+
+	public Socket getSocket() {
+		return socket;
 	}
 
 }

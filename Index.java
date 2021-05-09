@@ -1,3 +1,5 @@
+import java.net.Socket;
+
 public class Index {
 
 	public enum State {
@@ -6,10 +8,12 @@ public class Index {
 
 	private int filesize;
 	private State currentState;
+	private Connection storer;
 	private int dstoresNumber;
 
-	public Index(int filesize) {
+	public Index(int filesize, Connection storer) {
 		this.filesize = filesize;
+		this.storer = storer;
 		currentState = State.STORE_IN_PROGRESS;
 		dstoresNumber = 0;
 	}
@@ -22,13 +26,23 @@ public class Index {
 		return currentState;
 	}
 
-	public boolean ack() {
+	synchronized public boolean ack() {
 		dstoresNumber++;
-		return dstoresNumber++ == Controller.getR();
+
+		if (dstoresNumber == Controller.getR()) {
+			currentState = State.STORE_COMPLETE;
+			return true;
+		}
+
+		return false;
 	}
 
 	public int getDstoresNumber() {
 		return dstoresNumber;
+	}
+
+	public Connection getStorer() {
+		return storer;
 	}
 
 }

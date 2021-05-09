@@ -18,7 +18,7 @@ public class ConnectionHandler implements Runnable {
 		this.serverType = serverType;
 		try {
 			connection = new Connection(socket);
-			in = connection.getIn();
+			in = connection.getInReader();
 		} catch (IOException e) {
 			TerminalLog.printErr(NAME,
 					socket.getPort() + " - Failed to get the input or output stream of the connection");
@@ -33,12 +33,13 @@ public class ConnectionHandler implements Runnable {
 		String line;
 		try {
 			while ((line = in.readLine()) != null) {
-				String[] command = line.split(" ");
 				TerminalLog.printMes(NAME, connection.getPort() + " - Command successfully read!");
+				String[] command = line.split(" ");
+				TerminalLog.printMes(NAME, connection.getPort() + " Command: " + Arrays.toString(command));
 				if (serverType == ServerType.CONTROLLER) {
 					controllerHandle(command);
 				} else {
-
+					dstoreHandle(command);
 				}
 
 				TerminalLog.printMes(NAME, connection.getPort() + " - Waiting for the command");
@@ -62,12 +63,15 @@ public class ConnectionHandler implements Runnable {
 		TerminalLog.printMes(NAME, connection.getPort() + " - verifying validity of the command");
 	}
 
-	public Handler dstoreHandle(String[] command) {
+	public void dstoreHandle(String[] command) {
 		switch (command[0]) {
 			case Protocol.STORE_TOKEN:
-				return null;
+				DstoreServerHandler server = new DstoreServerHandler(connection, command);
+				server.handle();
+				break;
 			default:
-				return null;
+				TerminalLog.printMes(NAME, connection.getPort() + " - this command hasn't been implemented yet");
+				break;
 		}
 	}
 
@@ -76,6 +80,11 @@ public class ConnectionHandler implements Runnable {
 			case Protocol.JOIN_TOKEN:
 				DstoreHandler dstore = new DstoreHandler(connection, command);
 				dstore.handle();
+				break;
+			case Protocol.STORE_ACK_TOKEN:
+				if (Controller.ackIndex(command[1])) {
+					Controller.getStorer(command[1]).getOutWriter().println(Protocol.STORE_COMPLETE_TOKEN);
+				}
 				break;
 			case Protocol.LIST_TOKEN:
 			case Protocol.STORE_TOKEN:

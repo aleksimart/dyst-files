@@ -132,10 +132,14 @@ public class Dstore {
 		// socket.setSoTimeout(timeout); // TODO: is this needed
 
 		connection = new Connection(socket);
-		out = connection.getOut();
-		in = connection.getIn();
+		out = connection.getOutWriter();
+		in = connection.getInReader();
 
 		TerminalLog.printMes(NAME, "Succesfully established connection! Local port: " + port);
+	}
+
+	public static void ackStorage(String fileName) {
+		out.println(Protocol.STORE_ACK_TOKEN + " " + fileName);
 	}
 
 	// TODO: Might just ask to send the response as LIST
@@ -157,6 +161,10 @@ public class Dstore {
 
 	private static boolean serverCreated() {
 		return (server != null);
+	}
+
+	public static File getFile_folder() {
+		return file_folder;
 	}
 
 }

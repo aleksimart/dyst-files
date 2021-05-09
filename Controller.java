@@ -2,8 +2,11 @@ import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.stream.Collectors;
 
 public class Controller {
     public static final String NAME = Controller.class.getName();
@@ -15,7 +18,8 @@ public class Controller {
     private static int rebalance_period;
 
     private static ConcurrentHashMap<String, Index> indexMap;
-    private static PriorityBlockingQueue<DstoreProps> dstores;
+    private static ConcurrentHashMap<Connection, DstoreProps> dstores;
+    // private static PriorityBlockingQueue<DstoreProps> dstores;
 
     /**
      * 3 arguments are passed when running the controller:
@@ -33,7 +37,9 @@ public class Controller {
         initLogger();
 
         indexMap = new ConcurrentHashMap<>();
-        dstores = new PriorityBlockingQueue<>(R, Comparator.comparingInt(DstoreProps::getSize));
+        // dstores = new PriorityBlockingQueue<>(R,
+        // Comparator.comparingInt(DstoreProps::getSize));
+        dstores = new ConcurrentHashMap<>();
 
         try {
             ServerSocket ss = new ServerSocket(cport);
@@ -50,29 +56,32 @@ public class Controller {
         }
     }
 
-    public static void addDstore(int port) {
-        dstores.put(new DstoreProps(port));
+    public static boolean ackIndex(String filename) {
+        return indexMap.get(filename).ack();
     }
 
-    public static Integer[] getDstores() {
+    public static void addDstore(Connection dstore, int port) {
+        dstores.put(dstore, new DstoreProps(port));
+    }
+
+    public static Integer[] getDstores(int filesize) {
 
         if (!isEnoughDstores()) {
+            TerminalLog.printMes(NAME, "Not enough Dstores! Can't return the requested dstores!");
             return null;
         }
 
         Integer[] storingDstores = new Integer[R];
-        ArrayList<DstoreProps> props = new ArrayList<>();
+
+        // TODO: change to floor and ceiling
+        List<DstoreProps> ports = dstores.values().stream().sorted(Comparator.comparingInt(DstoreProps::getSize))
+                .collect(Collectors.toList());
 
         // Get them out first
         for (int i = 0; i < R; i++) {
-            DstoreProps value = dstores.remove();
-            storingDstores[i] = value.getPort();
-            props.add(value);
-        }
-
-        // put them back in
-        for (DstoreProps prop : props) {
-            dstores.put(prop);
+            DstoreProps prop = ports.get(i);
+            storingDstores[i] = prop.getPort();
+            prop.addFile(filesize);
         }
 
         return storingDstores;
@@ -81,12 +90,16 @@ public class Controller {
     private void rebalance() {
     }
 
-    public static void addIndex(String filename, int filesize) {
-        indexMap.put(filename, new Index(filesize));
+    public static void addIndex(String filename, int filesize, Connection storer) {
+        indexMap.put(filename, new Index(filesize, storer));
     }
 
     public static boolean isEnoughDstores() {
         return dstores.size() >= R;
+    }
+
+    public static Connection getStorer(String filename) {
+        return indexMap.get(filename).getStorer();
     }
 
     private static void initLogger() {
