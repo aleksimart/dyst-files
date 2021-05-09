@@ -100,7 +100,7 @@ public class Dstore {
 
 			String controllerCommands;
 			while ((controllerCommands = in.readLine()) != null) {
-				// TODO: read the commands out
+				// TODO: read the commands out, mostly just for handling LIST
 			}
 
 		} catch (IOException e) {
@@ -147,6 +147,7 @@ public class Dstore {
 		TerminalLog.printMes(NAME, "Attempting to join the controller");
 		String message = Protocol.JOIN_TOKEN + " " + port;
 		out.println(message);
+		// Log it
 		DstoreLogger.getInstance().messageSent(socket, TerminalLog.stampMes(message));
 		TerminalLog.printMes(NAME, "Joined Successfully!");
 	}

@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 
 /**
  * DstoreServer
@@ -24,12 +25,12 @@ public class DstoreServer implements Runnable {
 				Socket client = ss.accept();
 				TerminalLog.printMes(NAME, "New connection from port " + client.getPort());
 				TerminalLog.printMes(NAME, "Transfering control to handler to determine the type of the connection");
-				// TODO distinguish between controller connection and dstore connection
 				new Thread(new ConnectionHandler(client, ConnectionHandler.ServerType.DSTORE)).start();
 			}
 		} catch (IOException e) {
-			e.printStackTrace();
-			System.exit(1);
+			TerminalLog.printErr(NAME, "Error: " + e + ", closing the server");
+		} finally {
+			close();
 		}
 	}
 

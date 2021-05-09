@@ -29,22 +29,12 @@ public class ConnectionHandler implements Runnable {
 
 	@Override
 	public void run() {
-		TerminalLog.printMes(NAME, connection.getPort() + " - Waiting for the command");
-		String line;
 		try {
-			while ((line = in.readLine()) != null) {
-				TerminalLog.printMes(NAME, connection.getPort() + " - Command successfully read!");
-				String[] command = line.split(" ");
-				TerminalLog.printMes(NAME, connection.getPort() + " Command: " + Arrays.toString(command));
-				if (serverType == ServerType.CONTROLLER) {
-					controllerHandle(command);
-				} else {
-					dstoreHandle(command);
-				}
-
-				TerminalLog.printMes(NAME, connection.getPort() + " - Waiting for the command");
+			if (serverType == ServerType.CONTROLLER) {
+				readCommands(controllerParser);
+			} else {
+				readCommands(dstoreParser);
 			}
-			TerminalLog.printMes(NAME, connection.getPort() + "- terminated connection");
 		} catch (IOException e) {
 			TerminalLog.printErr(NAME, connection.getPort() + " - Failed to read input from the connection!");
 			e.printStackTrace();
@@ -58,34 +48,48 @@ public class ConnectionHandler implements Runnable {
 		}
 	}
 
-	// TODO: implement (or potentially just do it in handlers)
-	public void checkArgs(String[] command) {
-		TerminalLog.printMes(NAME, connection.getPort() + " - verifying validity of the command");
+	public void readCommands(CommandParser parser) throws IOException {
+		TerminalLog.printMes(NAME, connection.getPort() + " - Waiting for the command");
+		String line;
+
+		while ((line = in.readLine()) != null) {
+
+			TerminalLog.printMes(NAME, connection.getPort() + " - Command successfully read!");
+			String[] command = line.split(" ");
+			TerminalLog.printMes(NAME, connection.getPort() + " Command: " + Arrays.toString(command));
+			Handler handler = parser.parse(command);
+
+			String[] args = Arrays.copyOfRange(command, 1, command.length);
+			handler.handle(args, connection);
+
+			TerminalLog.printMes(NAME, connection.getPort() + " - Waiting for the command");
+		}
+
+		TerminalLog.printMes(NAME, connection.getPort() + "- terminated connection");
 	}
 
-	public void dstoreHandle(String[] command) {
+	public CommandParser dstoreParser = (String[] command) -> {
 		switch (command[0]) {
 			case Protocol.STORE_TOKEN:
-				DstoreServerHandler server = new DstoreServerHandler(connection, command);
-				server.handle();
-				break;
+				return DstoreServerHandler.storeHandler;
 			default:
-				TerminalLog.printMes(NAME, connection.getPort() + " - this command hasn't been implemented yet");
-				break;
+				TerminalLog.printMes(NAME, connection.getPort()
+						+ " - this command hasn't been implemented yet or it doesn't exist: " + command[0]);
+				return null;
 		}
-	}
+	};
 
-	public void controllerHandle(String[] command) {
+	public CommandParser controllerParser = (String[] command) -> {
+		// ControllerLogger.getInstance().messageReceived(connection.getSocket(), line);
 		switch (command[0]) {
 			case Protocol.JOIN_TOKEN:
-				DstoreHandler dstore = new DstoreHandler(connection, command);
-				dstore.handle();
-				break;
+				return DstoreHandler.joinHandler;
 			case Protocol.STORE_ACK_TOKEN:
-				if (Controller.ackIndex(command[1])) {
-					Controller.getStorer(command[1]).getOutWriter().println(Protocol.STORE_COMPLETE_TOKEN);
-				}
-				break;
+				return (String[] args, Connection connection) -> {
+					if (Controller.ackIndex(command[1])) {
+						Controller.getStorer(command[1]).getOutWriter().println(Protocol.STORE_COMPLETE_TOKEN);
+					}
+				};
 			case Protocol.LIST_TOKEN:
 			case Protocol.STORE_TOKEN:
 			case Protocol.LOAD_TOKEN:
@@ -97,28 +101,15 @@ public class ConnectionHandler implements Runnable {
 				if (!Controller.isEnoughDstores()) {
 					TerminalLog.printErr(NAME,
 							connection.getPort() + " - Cannot connect! Not enough dstores joined the network");
+					// TODO: figure out how to put the client in the queue
+					return null;
 				} else {
-					ClientHandler client = new ClientHandler(connection, command);
-					client.handle();
+					return ClientHandler.storeHandler;
 				}
-				break;
 			default:
-				TerminalLog.printMes(NAME, connection.getPort() + " - Invalid command");
-				// TODO: This is an invalid command, should log it and ignore
+				TerminalLog.printMes(NAME, connection.getPort() + " - Invalid command sent: " + command[0]);
+				return null;
 		}
 
-	}
-
-	/**
-	 * Handlers
-	 */
-	// private Handler join = (String[] args, Connection connection) -> {
-	// TerminalLog.printMes(NAME, connection.getPort() + " - New dstore just joined
-	// the ranks!");
-	// TerminalLog.printMes(NAME, connection.getPort() + " - Declared port: " +
-	// args[0]);
-	// Controller.addDstore(Integer.parseInt(args[0]));
-	// TerminalLog.printMes(NAME, connection.getPort() + " - Dstore successfully
-	// added to the list!");
-	// };
+	};
 }
