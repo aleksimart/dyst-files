@@ -56,12 +56,16 @@ public class Controller {
         }
     }
 
-    public static boolean ackIndex(String filename) {
-        return indexMap.get(filename).ack();
+    public static boolean ackIndex(String filename, Connection dstore) {
+        return indexMap.get(filename).ack(dstore);
     }
 
     public static void addDstore(Connection dstore, int port) {
         dstores.put(dstore, new DstoreProps(port));
+    }
+
+    public static int getfileServer(String filename) {
+        return dstores.get(indexMap.get(filename).getStore()).getPort();
     }
 
     public static Integer[] getDstores(int filesize) {

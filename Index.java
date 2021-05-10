@@ -1,4 +1,5 @@
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class Index {
 
@@ -10,12 +11,14 @@ public class Index {
 	private State currentState;
 	private Connection storer;
 	private int dstoresNumber;
+	private ArrayList<Connection> dstores;
 
 	public Index(int filesize, Connection storer) {
 		this.filesize = filesize;
 		this.storer = storer;
 		currentState = State.STORE_IN_PROGRESS;
 		dstoresNumber = 0;
+		dstores = new ArrayList<>();
 	}
 
 	public int getFilesize() {
@@ -26,8 +29,9 @@ public class Index {
 		return currentState;
 	}
 
-	synchronized public boolean ack() {
+	synchronized public boolean ack(Connection dstore) {
 		dstoresNumber++;
+		dstores.add(dstore);
 
 		if (dstoresNumber == Controller.getR()) {
 			currentState = State.STORE_COMPLETE;
@@ -43,6 +47,10 @@ public class Index {
 
 	public Connection getStorer() {
 		return storer;
+	}
+
+	synchronized public Connection getStore() {
+		return dstores.get(0);
 	}
 
 }

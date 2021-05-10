@@ -69,4 +69,9 @@ public class ClientHandler {
 		}
 
 	};
+
+	public static Handler loadHandler = (String[] args, Connection connection) -> {
+		int dstorePort = Controller.getfileServer(args[0]);
+		connection.getOutWriter().println(Protocol.LOAD_FROM_TOKEN + " " + dstorePort);
+	};
 }

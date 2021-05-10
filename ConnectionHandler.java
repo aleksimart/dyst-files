@@ -92,13 +92,23 @@ public class ConnectionHandler implements Runnable {
 						return;
 					}
 
-					if (Controller.ackIndex(command[1])) {
+					if (Controller.ackIndex(command[1], connection)) {
 						Controller.getStorer(command[1]).getOutWriter().println(Protocol.STORE_COMPLETE_TOKEN);
 					}
 				};
 			case Protocol.LIST_TOKEN:
 			case Protocol.STORE_TOKEN:
 			case Protocol.LOAD_TOKEN:
+				TerminalLog.printMes(NAME, connection.getPort() + " - New client attempts to join the network!");
+
+				if (!Controller.isEnoughDstores()) {
+					TerminalLog.printErr(NAME,
+							connection.getPort() + " - Cannot connect! Not enough dstores joined the network");
+					// TODO: figure out how to put the client in the queue
+					return null;
+				} else {
+					return ClientHandler.storeHandler;
+				}
 			case Protocol.LOAD_DATA_TOKEN:
 			case Protocol.RELOAD_TOKEN:
 			case Protocol.REMOVE_TOKEN:
