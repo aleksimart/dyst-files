@@ -86,6 +86,12 @@ public class ConnectionHandler implements Runnable {
 				return DstoreHandler.joinHandler;
 			case Protocol.STORE_ACK_TOKEN:
 				return (String[] args, Connection connection) -> {
+					if (!Controller.indexExists(command[1])) {
+						TerminalLog.printMes(NAME,
+								connection.getPort() + "No longer can acknowledge the file " + command[1]);
+						return;
+					}
+
 					if (Controller.ackIndex(command[1])) {
 						Controller.getStorer(command[1]).getOutWriter().println(Protocol.STORE_COMPLETE_TOKEN);
 					}

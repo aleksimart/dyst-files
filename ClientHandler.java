@@ -1,5 +1,3 @@
-import java.util.concurrent.CompletableFuture;
-
 /**
  * ClientHandler
  */
@@ -31,10 +29,19 @@ public class ClientHandler {
 		String name = args[0];
 		int filesize = Integer.parseInt(args[1]);
 
-		Controller.addIndex(name, filesize, connection);
+		if (!Controller.addIndex(name, filesize, connection)) {
+			connection.getOutWriter().println(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
+			return;
+		}
 
 		// TODO: check for the value is null
 		Integer[] ports = Controller.getDstores(filesize);
+		if (ports == null) {
+			System.out.println("Server error: client handler failed to get the dstore ports for connection "
+					+ connection.getPort());
+			connection.getOutWriter().println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+			return;
+		}
 
 		StringBuilder command = new StringBuilder();
 		command.append(Protocol.STORE_TO_TOKEN);
@@ -46,6 +53,20 @@ public class ClientHandler {
 
 		connection.getOutWriter().println(command);
 
-	};
+		/**
+		 * TODO: this isn't the best way. The proper way would be to get all the dstore
+		 * sockets in one place and call the readline on them with timeout and throw a
+		 * timeout socket exception if they are not done on time which means failed
+		 * storage.
+		 */
+		try {
+			Thread.sleep(Controller.getTimeout());
+			if (Controller.getIndexState(name) != Index.State.STORE_COMPLETE) {
+				Controller.deleteIndex(name);
+			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 
+	};
 }

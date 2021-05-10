@@ -65,25 +65,36 @@ public class Dstore {
 					break;
 				case "file folder":
 					// TODO: possibly add a check that it the folder is possible to create
-					file_folder = new File(arg);
+					initFileFolder(arg);
 					break;
 				default:
 					throw new Exception("Internal error, invalid arg: " + name);
 			}
 
 		} catch (NumberFormatException e) {
-			System.err.println("Invalid " + name + ", must be an integer");
-			e.printStackTrace();
-			System.exit(1);
-		} catch (IllegalArgumentException e) {
-			System.err.println(e);
+			TerminalLog.printErr(NAME, "Failed to parse an argument: " + name + ",it must be an integer");
 			e.printStackTrace();
 			System.exit(1);
 		} catch (Exception e) {
+			TerminalLog.printErr(NAME, "Failed to parse an argument: " + name);
 			e.printStackTrace();
 			System.exit(1);
 		}
 
+	}
+
+	private static void initFileFolder(String folderName) throws IOException {
+		file_folder = new File(folderName);
+
+		if (!file_folder.exists() && !file_folder.mkdir()) {
+			throw new IOException("Failed to create folder: " + folderName);
+		}
+
+		// Making sure that the passed folder is empty
+		File[] files = file_folder.listFiles();
+		for (File file : files) {
+			file.delete();
+		}
 	}
 
 	/**

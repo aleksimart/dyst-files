@@ -90,8 +90,25 @@ public class Controller {
     private void rebalance() {
     }
 
-    public static void addIndex(String filename, int filesize, Connection storer) {
+    public static boolean addIndex(String filename, int filesize, Connection storer) {
+        if (indexExists(filename)) {
+            return false;
+        }
+
         indexMap.put(filename, new Index(filesize, storer));
+        return true;
+    }
+
+    public static Index.State getIndexState(String filename) {
+        return indexMap.get(filename).getCurrentState();
+    }
+
+    public static void deleteIndex(String filename) {
+        indexMap.remove(filename);
+    }
+
+    public static boolean indexExists(String filename) {
+        return indexMap.containsKey(filename);
     }
 
     public static boolean isEnoughDstores() {
@@ -162,6 +179,14 @@ public class Controller {
 
     public static int getR() {
         return R;
+    }
+
+    public static int getTimeout() {
+        return timeout;
+    }
+
+    public static int getRebalance_period() {
+        return rebalance_period;
     }
 
 }
