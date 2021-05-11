@@ -68,6 +68,10 @@ public class Controller {
         return dstores.get(indexMap.get(filename).getStore()).getPort();
     }
 
+    public static int getDstoreServerPort(Connection connection) {
+        return dstores.get(connection).getPort();
+    }
+
     public static Integer[] getDstores(int filesize) {
 
         if (!isEnoughDstores()) {
@@ -101,6 +105,10 @@ public class Controller {
 
         indexMap.put(filename, new Index(filesize, storer));
         return true;
+    }
+
+    public static ArrayList<Connection> getIndexServers(String filename) {
+        return indexMap.get(filename).getDstores();
     }
 
     public static Index.State getIndexState(String filename) {

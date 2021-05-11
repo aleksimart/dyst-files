@@ -64,7 +64,32 @@ public class myClient {
 			dStoreWriter.flush();
 
 			String newMessage = new String(dStoreReader.readNBytes(13));
-			System.out.println(newMessage);
+			System.out.println("Successfull read: " + newMessage);
+			dStoreSocket.close();
+
+			System.out.println("Trying again....");
+			oos.println(Protocol.RELOAD_TOKEN + " fileNames" + i);
+			oos.flush();
+			message = ois.readLine();
+			commands1 = message.split(" ");
+
+			dstorePort = Integer.parseInt(commands1[1]);
+			dStoreSocket = new Socket(host.getHostName(), dstorePort);
+
+			dStoreWriter = new PrintWriter(dStoreSocket.getOutputStream());
+			dStoreReader = dStoreSocket.getInputStream();
+
+			dStoreWriter.println(Protocol.LOAD_DATA_TOKEN + " fileNames" + i);
+			dStoreWriter.flush();
+
+			newMessage = new String(dStoreReader.readNBytes(13));
+			System.out.println("Successfull read: " + newMessage);
+			dStoreSocket.close();
+
+			System.out.println("Trying again....");
+			oos.println(Protocol.RELOAD_TOKEN + " fileNames" + i);
+			oos.flush();
+			System.out.println(ois.readLine());
 
 			// close resources
 			ois.close();

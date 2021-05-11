@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 public class ConnectionHandler implements Runnable {
@@ -13,6 +14,7 @@ public class ConnectionHandler implements Runnable {
 	private Connection connection;
 	private BufferedReader in;
 	private ServerType serverType;
+	private ArrayList<Connection> dstores;
 
 	public ConnectionHandler(Socket socket, ServerType serverType) {
 		this.serverType = serverType;
@@ -29,6 +31,7 @@ public class ConnectionHandler implements Runnable {
 
 	@Override
 	public void run() {
+		dstores = new ArrayList<>();
 		try {
 			if (serverType == ServerType.CONTROLLER) {
 				readCommands(controllerParser);
@@ -108,8 +111,50 @@ public class ConnectionHandler implements Runnable {
 					return (String[] args, Connection connection) -> connection.getOutWriter()
 							.println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
 				} else {
-					return ClientHandler.loadHandler;
+					return (String[] args, Connection connection) -> {
+						String filename = args[0];
+
+						if (!Controller.indexExists(filename)) {
+							TerminalLog.printErr("LoadHandler",
+									connection.getPort() + " - File '" + filename + "' doesn't exist");
+							ControllerLogger.getInstance().messageSent(connection.getSocket(),
+									Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+							connection.getOutWriter().println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+							return;
+						}
+
+						dstores = Controller.getIndexServers(filename);
+						String[] argsUpdated = new String[args.length + 1];
+						for (int i = 0; i < args.length; i++) {
+							argsUpdated[i] = args[i];
+						}
+						argsUpdated[args.length] = Integer.toString(Controller.getDstoreServerPort(dstores.remove(0)));
+						ClientHandler.loadHandler.handle(argsUpdated, connection);
+					};
 				}
+			case Protocol.RELOAD_TOKEN:
+				TerminalLog.printMes(NAME, connection.getPort() + " - New client attempts to join the network!");
+
+				if (!Controller.isEnoughDstores()) {
+					TerminalLog.printErr(NAME,
+							connection.getPort() + " - Cannot connect! Not enough dstores joined the network");
+					return (String[] args, Connection connection) -> connection.getOutWriter()
+							.println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+				} else {
+					if (dstores.size() == 0) {
+						return (String[] args, Connection connection) -> connection.getOutWriter()
+								.println(Protocol.ERROR_LOAD_TOKEN);
+					}
+					return (String[] args, Connection connection) -> {
+						String[] argsUpdated = new String[args.length + 1];
+						for (int i = 0; i < args.length; i++) {
+							argsUpdated[i] = args[i];
+						}
+						argsUpdated[args.length] = Integer.toString(Controller.getDstoreServerPort(dstores.remove(0)));
+						ClientHandler.loadHandler.handle(argsUpdated, connection);
+					};
+				}
+
 			case Protocol.STORE_TOKEN:
 				TerminalLog.printMes(NAME, connection.getPort() + " - New client attempts to join the network!");
 

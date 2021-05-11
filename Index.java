@@ -53,4 +53,8 @@ public class Index {
 		return dstores.get(0);
 	}
 
+	public ArrayList<Connection> getDstores() {
+		return dstores;
+	}
+
 }

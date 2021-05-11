@@ -88,15 +88,8 @@ public class ClientHandler {
 
 	public static Handler loadHandler = (String[] args, Connection connection) -> {
 		String filename = args[0];
+		int dstorePort = Integer.parseInt(args[1]);
 
-		if (!Controller.indexExists(filename)) {
-			TerminalLog.printErr("LoadHandler", connection.getPort() + " - File '" + filename + "' doesn't exist");
-			ControllerLogger.getInstance().messageSent(connection.getSocket(), Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
-			connection.getOutWriter().println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
-			return;
-		}
-
-		int dstorePort = Controller.getfileServer(filename);
 		TerminalLog.printErr("LoadHandler",
 				connection.getPort() + " - Found where to load the file '" + filename + "' from");
 		ControllerLogger.getInstance().messageSent(connection.getSocket(), Protocol.LOAD_FROM_TOKEN + " " + dstorePort);
