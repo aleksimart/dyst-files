@@ -54,7 +54,7 @@ public class Index {
 	}
 
 	public ArrayList<Connection> getDstores() {
-		return dstores;
+		return new ArrayList<Connection>(dstores);
 	}
 
 }
