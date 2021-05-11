@@ -33,19 +33,45 @@ public class DstoreServerHandler {
 	// }
 	// }
 
+	// TODO: possibly don't actually do a while loop when dealing with the dstore
+	// client connection but just one command?
 	public static Handler storeHandler = (String args[], Connection connection) -> {
 		File file = new File(Dstore.getFile_folder().getAbsolutePath() + "/" + args[0]);
+		TerminalLog.printMes("StoreHandler from Dstore",
+				connection.getPort() + " - Created file '" + args[0] + "', sending acknowledgement");
+		DstoreLogger.getInstance().messageSent(connection.getSocket(), Protocol.ACK_TOKEN);
 		connection.getOutWriter().println(Protocol.ACK_TOKEN);
 
-		try {
+		try { // TODO: pretty sure we don't need to log anything related to a file
 			FileOutputStream fileStream = new FileOutputStream(file);
 			byte[] contents = connection.getIn().readNBytes(Integer.parseInt(args[1]));
 			fileStream.write(contents);
 			fileStream.close();
+			TerminalLog.printMes("StoreHandler from Dstore",
+					connection.getPort() + " - Stored file '" + args[0] + "', sending acknowledgement to Controller");
 			Dstore.ackStorage(args[0]);
 
 			connection.getInReader().readLine();
 		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	};
+
+	public static Handler loadHandler = (String args[], Connection connection) -> {
+		try {
+			FileInputStream inFile = new FileInputStream(Dstore.getFile_folder().toString() + "/" + args[0]);
+			TerminalLog.printMes("LoadHandler from Dstore",
+					connection.getPort() + " - Found file '" + args[0] + "', starting the transfer");
+
+			byte[] a = inFile.readAllBytes();
+			connection.getOut().write(a);
+			connection.getOut().flush();
+			inFile.close();
+
+			TerminalLog.printMes("LoadHandler from Dstore",
+					connection.getPort() + " - File '" + args[0] + "', has been transferred successfully");
+		} catch (IOException e) {
+			// TODO: Fix this
 			e.printStackTrace();
 		}
 	};

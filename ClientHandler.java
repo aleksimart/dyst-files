@@ -26,10 +26,10 @@ public class ClientHandler {
 	// }
 
 	public static Handler storeHandler = (String[] args, Connection connection) -> {
-		String name = args[0];
+		String filename = args[0];
 		int filesize = Integer.parseInt(args[1]);
 
-		if (!Controller.addIndex(name, filesize, connection)) {
+		if (!Controller.addIndex(filename, filesize, connection)) {
 			connection.getOutWriter().println(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
 			return;
 		}
@@ -37,8 +37,10 @@ public class ClientHandler {
 		// TODO: check for the value is null
 		Integer[] ports = Controller.getDstores(filesize);
 		if (ports == null) {
-			System.out.println("Server error: client handler failed to get the dstore ports for connection "
-					+ connection.getPort());
+			TerminalLog.printErr("StoreHandler", connection.getPort()
+					+ " - Server error: client handler failed to get the dstore ports for storing '" + filename + "'");
+			System.out.println("" + connection.getPort());
+			ControllerLogger.getInstance().messageSent(connection.getSocket(), Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
 			connection.getOutWriter().println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
 			return;
 		}
@@ -51,6 +53,9 @@ public class ClientHandler {
 			command.append(port);
 		}
 
+		TerminalLog.printMes("StoreHandler",
+				connection.getPort() + " - found the dstores for '" + filename + "', sending the relevant command");
+		ControllerLogger.getInstance().messageSent(connection.getSocket(), command.toString());
 		connection.getOutWriter().println(command);
 
 		/**
@@ -59,19 +64,42 @@ public class ClientHandler {
 		 * timeout socket exception if they are not done on time which means failed
 		 * storage.
 		 */
-		try {
-			Thread.sleep(Controller.getTimeout());
-			if (Controller.getIndexState(name) != Index.State.STORE_COMPLETE) {
-				Controller.deleteIndex(name);
+		new Thread(() -> {
+			try {
+				TerminalLog.printMes("StoreHandler",
+						connection.getPort() + " - Starting a timeout to store a file '" + filename + "'");
+				Thread.sleep(Controller.getTimeout());
+				if (Controller.getIndexState(filename) != Index.State.STORE_COMPLETE) {
+					TerminalLog.printErr("StoreHandler",
+							connection.getPort() + " - Failed to store the file '" + filename + "' before timeout");
+					Controller.deleteIndex(filename);
+					TerminalLog.printMes("StoreHandler",
+							connection.getPort() + " - File '" + filename + "' has been deleted");
+				}
+				TerminalLog.printMes("StoreHandler",
+						connection.getPort() + " - File '" + filename + "' has been successfully stored!");
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+
+		}).start();
 
 	};
 
 	public static Handler loadHandler = (String[] args, Connection connection) -> {
-		int dstorePort = Controller.getfileServer(args[0]);
+		String filename = args[0];
+
+		if (!Controller.indexExists(filename)) {
+			TerminalLog.printErr("LoadHandler", connection.getPort() + " - File '" + filename + "' doesn't exist");
+			ControllerLogger.getInstance().messageSent(connection.getSocket(), Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+			connection.getOutWriter().println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
+			return;
+		}
+
+		int dstorePort = Controller.getfileServer(filename);
+		TerminalLog.printErr("LoadHandler",
+				connection.getPort() + " - Found where to load the file '" + filename + "' from");
+		ControllerLogger.getInstance().messageSent(connection.getSocket(), Protocol.LOAD_FROM_TOKEN + " " + dstorePort);
 		connection.getOutWriter().println(Protocol.LOAD_FROM_TOKEN + " " + dstorePort);
 	};
 }

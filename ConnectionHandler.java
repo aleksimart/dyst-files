@@ -72,6 +72,9 @@ public class ConnectionHandler implements Runnable {
 		switch (command[0]) {
 			case Protocol.STORE_TOKEN:
 				return DstoreServerHandler.storeHandler;
+			case Protocol.LOAD_DATA_TOKEN:
+				TerminalLog.printMes(NAME, connection.getPort() + " - New request to load a file!");
+				return DstoreServerHandler.loadHandler;
 			default:
 				TerminalLog.printMes(NAME, connection.getPort()
 						+ " - this command hasn't been implemented yet or it doesn't exist: " + command[0]);
@@ -88,7 +91,7 @@ public class ConnectionHandler implements Runnable {
 				return (String[] args, Connection connection) -> {
 					if (!Controller.indexExists(command[1])) {
 						TerminalLog.printMes(NAME,
-								connection.getPort() + "No longer can acknowledge the file " + command[1]);
+								connection.getPort() + " - No longer can acknowledge the file " + command[1]);
 						return;
 					}
 
@@ -96,29 +99,26 @@ public class ConnectionHandler implements Runnable {
 						Controller.getStorer(command[1]).getOutWriter().println(Protocol.STORE_COMPLETE_TOKEN);
 					}
 				};
-			case Protocol.LIST_TOKEN:
-			case Protocol.STORE_TOKEN:
 			case Protocol.LOAD_TOKEN:
 				TerminalLog.printMes(NAME, connection.getPort() + " - New client attempts to join the network!");
 
 				if (!Controller.isEnoughDstores()) {
 					TerminalLog.printErr(NAME,
 							connection.getPort() + " - Cannot connect! Not enough dstores joined the network");
-					// TODO: figure out how to put the client in the queue
-					return null;
+					return (String[] args, Connection connection) -> connection.getOutWriter()
+							.println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
 				} else {
-					return ClientHandler.storeHandler;
+					return ClientHandler.loadHandler;
 				}
-			case Protocol.LOAD_DATA_TOKEN:
-			case Protocol.RELOAD_TOKEN:
-			case Protocol.REMOVE_TOKEN:
+			case Protocol.STORE_TOKEN:
 				TerminalLog.printMes(NAME, connection.getPort() + " - New client attempts to join the network!");
 
 				if (!Controller.isEnoughDstores()) {
 					TerminalLog.printErr(NAME,
 							connection.getPort() + " - Cannot connect! Not enough dstores joined the network");
-					// TODO: figure out how to put the client in the queue
-					return null;
+					connection.getOutWriter().println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+					return (String[] args, Connection connection) -> connection.getOutWriter()
+							.println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
 				} else {
 					return ClientHandler.storeHandler;
 				}
