@@ -49,6 +49,12 @@ public class Index {
 		return storer;
 	}
 
+	// returns true if the index is no longer stored anywhere
+	synchronized public boolean removeDstore(Connection connection) {
+		dstores.remove(connection);
+		return dstores.size() == 0;
+	}
+
 	synchronized public Connection getStore() {
 		return dstores.get(0);
 	}

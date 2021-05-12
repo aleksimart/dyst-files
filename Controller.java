@@ -64,6 +64,29 @@ public class Controller {
         dstores.put(dstore, new DstoreProps(port));
     }
 
+    // TODO: Maybe add a check that doesn't allow dstores with the same listening
+    // port to exist
+    public static Integer[] getDstorePorts() {
+        return null;
+    }
+
+    public static void removeDstore(Connection dstore) {
+        for (String filename : indexMap.keySet()) {
+            Index index = indexMap.get(filename);
+            if (index.getDstores().contains(dstore)) {
+                // remove it but also remove the index if empty
+                if (index.removeDstore(dstore)) {
+                    TerminalLog.printMes(NAME, "Removing index for file '" + filename + "'");
+                    deleteIndex(filename);
+                }
+            }
+        }
+
+        int port = dstore.getPort();
+        dstores.remove(dstore);
+        TerminalLog.printMes(NAME, "Successfully removed a dstore '" + port + "'");
+    }
+
     public static int getfileServer(String filename) {
         return dstores.get(indexMap.get(filename).getStore()).getPort();
     }

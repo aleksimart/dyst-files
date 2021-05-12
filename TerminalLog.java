@@ -21,6 +21,7 @@ public class TerminalLog {
 		System.err.println("[" + entity + ": " + timeStamp + "]: " + mes);
 	}
 
+	// TODO: make sure to stamp the messages in their logger
 	public static String stampMes(String mes) {
 		String timeStamp = new SimpleDateFormat(DATE_FORMAT).format(Calendar.getInstance().getTime());
 		return (timeStamp + ": " + mes);

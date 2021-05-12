@@ -30,6 +30,8 @@ public class ClientHandler {
 		int filesize = Integer.parseInt(args[1]);
 
 		if (!Controller.addIndex(filename, filesize, connection)) {
+			TerminalLog.printErr("StoreHandler",
+					connection.getPort() + " - Error! File '" + filename + "' already exists!");
 			connection.getOutWriter().println(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN);
 			return;
 		}
@@ -40,7 +42,8 @@ public class ClientHandler {
 			TerminalLog.printErr("StoreHandler", connection.getPort()
 					+ " - Server error: client handler failed to get the dstore ports for storing '" + filename + "'");
 			System.out.println("" + connection.getPort());
-			ControllerLogger.getInstance().messageSent(connection.getSocket(), Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+			ControllerLogger.getInstance().messageSent(connection.getSocket(),
+					TerminalLog.stampMes(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN));
 			connection.getOutWriter().println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
 			return;
 		}
@@ -55,7 +58,7 @@ public class ClientHandler {
 
 		TerminalLog.printMes("StoreHandler",
 				connection.getPort() + " - found the dstores for '" + filename + "', sending the relevant command");
-		ControllerLogger.getInstance().messageSent(connection.getSocket(), command.toString());
+		ControllerLogger.getInstance().messageSent(connection.getSocket(), TerminalLog.stampMes(command.toString()));
 		connection.getOutWriter().println(command);
 
 		/**
@@ -75,6 +78,7 @@ public class ClientHandler {
 					Controller.deleteIndex(filename);
 					TerminalLog.printMes("StoreHandler",
 							connection.getPort() + " - File '" + filename + "' has been deleted");
+					return;
 				}
 				TerminalLog.printMes("StoreHandler",
 						connection.getPort() + " - File '" + filename + "' has been successfully stored!");
@@ -86,13 +90,37 @@ public class ClientHandler {
 
 	};
 
-	public static Handler loadHandler = (String[] args, Connection connection) -> {
+	// TODO: move all that load mess from connection handler to here
+	public static Handler subLoadHandler = (String[] args, Connection connection) -> {
 		String filename = args[0];
 		int dstorePort = Integer.parseInt(args[1]);
 
 		TerminalLog.printErr("LoadHandler",
 				connection.getPort() + " - Found where to load the file '" + filename + "' from");
-		ControllerLogger.getInstance().messageSent(connection.getSocket(), Protocol.LOAD_FROM_TOKEN + " " + dstorePort);
+		ControllerLogger.getInstance().messageSent(connection.getSocket(),
+				TerminalLog.stampMes(Protocol.LOAD_FROM_TOKEN + " " + dstorePort));
 		connection.getOutWriter().println(Protocol.LOAD_FROM_TOKEN + " " + dstorePort);
+	};
+
+	public static Handler storeAcknowledgeHandler = (String[] args, Connection connection) -> {
+		if (!Controller.indexExists(args[0])) {
+			TerminalLog.printMes("Store Acknowledgment Handler",
+					connection.getPort() + " - No longer can acknowledge the file " + args[0]);
+			return;
+		}
+
+		if (Controller.ackIndex(args[0], connection)) {
+			ControllerLogger.getInstance().messageSent(connection.getSocket(),
+					TerminalLog.stampMes(Protocol.STORE_COMPLETE_TOKEN));
+			Controller.getStorer(args[0]).getOutWriter().println(Protocol.STORE_COMPLETE_TOKEN);
+		}
+	};
+
+	public static Handler notEnoughDstoresHandler = (String[] args, Connection connection) -> {
+		TerminalLog.printErr("Not Enough Dstores Handler",
+				connection.getPort() + " - Cannot connect! Not enough dstores joined the network");
+		ControllerLogger.getInstance().messageSent(connection.getSocket(),
+				TerminalLog.stampMes(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN));
+		connection.getOutWriter().println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
 	};
 }
