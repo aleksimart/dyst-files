@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.Arrays;
 
 public class Dstore {
 
@@ -109,9 +110,18 @@ public class Dstore {
 			joinController();
 			startServer();
 
-			String controllerCommands;
-			while ((controllerCommands = in.readLine()) != null) {
-				// TODO: read the commands out, mostly just for handling LIST
+			String line;
+			while ((line = in.readLine()) != null) {
+				String[] command = line.split(" ");
+				String[] cmdArgs = Arrays.copyOfRange(command, 1, command.length);
+
+				switch (command[0]) {
+					case Protocol.REMOVE_TOKEN:
+						DstoreServerHandler.removeHandler.handle(cmdArgs, connection);
+					default:
+
+				}
+
 			}
 
 		} catch (IOException e) {
@@ -149,6 +159,7 @@ public class Dstore {
 		TerminalLog.printMes(NAME, "Succesfully established connection! Local port: " + port);
 	}
 
+	// TODO: yeah make sure to send it from this connection
 	public static void ackStorage(String fileName) {
 		out.println(Protocol.STORE_ACK_TOKEN + " " + fileName);
 	}

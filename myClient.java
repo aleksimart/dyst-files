@@ -59,17 +59,17 @@ public class myClient {
 	}
 
 	public static void func1() throws UnknownHostException, IOException, ClassNotFoundException, InterruptedException {
+
+		socket = new Socket(host.getHostName(), 3000);
+		oos = new PrintWriter(socket.getOutputStream(), true);
+		ois = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 		for (int i = 0; i < 10; i++) {
 			// establish socket connection to server
 			// write to socket using ObjectOutputStream
-			socket = new Socket(host.getHostName(), 3000);
-			oos = new PrintWriter(socket.getOutputStream());
 			System.out.println("Sending request to Socket Server");
-
 			oos.println(Protocol.STORE_TOKEN + " fileNames" + i + " 13");
-			oos.flush();
+
 			// read the server response message
-			ois = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 			String message = ois.readLine();
 			System.out.println(message);
 
@@ -79,23 +79,22 @@ public class myClient {
 				int dStorePort = Integer.parseInt(commands[j]);
 				Socket dStoreSocket = new Socket(host.getHostName(), dStorePort);
 
-				PrintWriter dStoreWriter = new PrintWriter(dStoreSocket.getOutputStream());
+				PrintWriter dStoreWriter = new PrintWriter(dStoreSocket.getOutputStream(), true);
 				BufferedReader dStoreReader = new BufferedReader(new InputStreamReader(dStoreSocket.getInputStream()));
 
 				dStoreWriter.println(Protocol.STORE_TOKEN + " fileNames" + i + " 13");
-				dStoreWriter.flush();
 
 				String newMessage = dStoreReader.readLine();
 				System.out.println(newMessage);
 
 				dStoreWriter.println("file_contents");
-				dStoreWriter.flush();
 				dStoreSocket.close();
 			}
 
 			String finalMessage = ois.readLine();
 			System.out.println(finalMessage);
 
+			// Load
 			System.out.println("Loading in file: fileNames" + i);
 			oos.println(Protocol.LOAD_TOKEN + " fileNames" + i);
 			oos.flush();
@@ -105,7 +104,7 @@ public class myClient {
 			int dstorePort = Integer.parseInt(commands1[1]);
 			Socket dStoreSocket = new Socket(host.getHostName(), dstorePort);
 
-			PrintWriter dStoreWriter = new PrintWriter(dStoreSocket.getOutputStream());
+			PrintWriter dStoreWriter = new PrintWriter(dStoreSocket.getOutputStream(), true);
 			InputStream dStoreReader = dStoreSocket.getInputStream();
 
 			dStoreWriter.println(Protocol.LOAD_DATA_TOKEN + " fileNames" + i);
@@ -142,8 +141,14 @@ public class myClient {
 		}
 
 		oos.println(Protocol.LIST_TOKEN);
-		oos.flush();
 		System.out.println(ois.readLine());
+
+		for (int i = 0; i < 10; i++) {
+			System.out.println("Removing all the files");
+			oos.println(Protocol.REMOVE_TOKEN + " fileNames" + i);
+			System.out.println(ois.readLine());
+		}
+
 		// close resources
 		ois.close();
 		oos.close();

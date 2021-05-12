@@ -1,4 +1,6 @@
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -71,37 +73,53 @@ public class ClientHandler {
 		connection.getOutWriter().println(command);
 	};
 
-	// /**
-	// * TODO: this isn't the best way. The proper way would be to get all the
-	// dstore
-	// * sockets in one place and call the readline on them with timeout and throw a
-	// * timeout socket exception if they are not done on time which means failed
-	// * storage.
-	// */
-	//
-	// public static Thread oldTimeout = new Thread(() -> {
-	// try {
-	// TerminalLog.printMes("StoreHandler",
-	// connection.getPort() + " - Starting a timeout to store a file '" + filename +
-	// "'");
-	// Thread.sleep(Controller.getTimeout());
-	// if (Controller.getIndexState(filename) != Index.State.STORE_COMPLETE) {
-	// TerminalLog.printErr("StoreHandler",
-	// connection.getPort() + " - Failed to store the file '" + filename + "' before
-	// timeout");
-	// Controller.deleteIndex(filename);
-	// TerminalLog.printMes("StoreHandler",
-	// connection.getPort() + " - File '" + filename + "' has been deleted");
-	// return;
-	// }
-	// TerminalLog.printMes("StoreHandler",
-	// connection.getPort() + " - File '" + filename + "' has been successfully
-	// stored!");
-	// } catch (InterruptedException e) {
-	// e.printStackTrace();
-	// }
+	public static Handler removeHandler = (String[] args, Connection connection) -> {
+		String filename = args[0];
+		try {
+			ArrayList<Connection> dstores = Controller.startIndexRemoval(filename);
 
-	// });
+			for (Connection dstore : dstores) {
+				TerminalLog.printMes("Remove Handler", "Index File '" + filename
+						+ "' - Attempting to delete the file for dstore: " + dstore.getPort());
+
+				// TODO: do I even need threads here?
+				new Thread(() -> {
+					dstore.getOutWriter().println(Protocol.REMOVE_TOKEN + " " + filename);
+					TerminalLog.printMes("Remove Handler", "Index File '" + filename
+							+ "' - Sent Request to delete the file for dstore: " + dstore.getPort());
+
+				}).start();
+
+			}
+
+			if (Controller.getIndexTimer(filename).get() != Index.Timeout.SUCCESSFULL) {
+				TerminalLog.printErr("RemoveHandler",
+						connection.getPort() + " - Failed to remove the file '" + filename + "' before timeout");
+				// Controller.deleteIndex(filename);
+				// TerminalLog.printMes("StoreHandler",
+				// connection.getPort() + " - File '" + filename + "' has been deleted");
+				return;
+			}
+			TerminalLog.printMes("RemoveHandler",
+					connection.getPort() + " - File '" + filename + "' has been successfully removed!");
+			Controller.deleteIndex(filename);
+			ControllerLogger.getInstance().messageSent(connection.getSocket(),
+					TerminalLog.stampMes(Protocol.REMOVE_COMPLETE_TOKEN));
+			connection.getOutWriter().println(Protocol.REMOVE_COMPLETE_TOKEN);
+		} catch (InterruptedException | ExecutionException e) {
+			e.printStackTrace();
+		}
+	};
+
+	public static Handler removeAcknowledgeHandler = (String[] args, Connection connection) -> {
+		if (Controller.ackRemovalIndex(args[0], connection) == Index.Timeout.SUCCESSFULL) {
+			// ControllerLogger.getInstance().messageSent(connection.getSocket(),
+			// TerminalLog.stampMes(Protocol.REMOVE_COMPLETE_TOKEN));
+			// TODO: not sure if i need to do this anymore with the whole future stuff
+			// Controller.getStorer(args[0]).getOutWriter().println(Protocol.REMOVE_COMPLETE_TOKEN);
+		}
+
+	};
 
 	// TODO: move all that load mess from connection handler to here
 	public static Handler subLoadHandler = (String[] args, Connection connection) -> {
@@ -122,7 +140,7 @@ public class ClientHandler {
 			return;
 		}
 
-		if (Controller.ackIndex(args[0], connection) == Index.Timeout.SUCCESSFULL) {
+		if (Controller.ackStorageIndex(args[0], connection) == Index.Timeout.SUCCESSFULL) {
 			ControllerLogger.getInstance().messageSent(connection.getSocket(),
 					TerminalLog.stampMes(Protocol.STORE_COMPLETE_TOKEN));
 			Controller.getStorer(args[0]).getOutWriter().println(Protocol.STORE_COMPLETE_TOKEN);

@@ -94,6 +94,10 @@ public class ConnectionHandler implements Runnable {
 			case Protocol.LOAD_DATA_TOKEN:
 				TerminalLog.printMes(NAME, connection.getPort() + " - New request to load a file!");
 				return DstoreServerHandler.loadHandler;
+			case Protocol.REMOVE_TOKEN:
+				TerminalLog.printMes(NAME, connection.getPort() + " - New request to delete a file!");
+				// TODO: this actually comes from controller to dstore and not server ;c
+				return DstoreServerHandler.removeHandler;
 			default:
 				// TODO: Logger and Handler
 				TerminalLog.printMes(NAME, connection.getPort()
@@ -110,10 +114,21 @@ public class ConnectionHandler implements Runnable {
 				return DstoreHandler.joinHandler;
 			case Protocol.STORE_ACK_TOKEN:
 				return ClientHandler.storeAcknowledgeHandler;
+			case Protocol.REMOVE_ACK_TOKEN:
+				return ClientHandler.removeAcknowledgeHandler;
 			case Protocol.LIST_TOKEN:
 				isDstore = false;
 				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");
 				return ClientHandler.listHandler;
+			case Protocol.REMOVE_TOKEN:
+				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");
+				isDstore = false;
+
+				if (!Controller.isEnoughDstores()) {
+					return ClientHandler.notEnoughDstoresHandler;
+				} else {
+					return ClientHandler.removeHandler;
+				}
 			case Protocol.LOAD_TOKEN:
 				isDstore = false;
 				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");

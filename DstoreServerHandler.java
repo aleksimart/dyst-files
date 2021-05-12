@@ -76,4 +76,14 @@ public class DstoreServerHandler {
 			e.printStackTrace();
 		}
 	};
+
+	public static Handler removeHandler = (String args[], Connection connection) -> {
+		TerminalLog.printMes("RemoveHandler from Dstore",
+				connection.getPort() + " - Found file '" + args[0] + "', starting the deletion process");
+		File fileToDelete = new File(Dstore.getFile_folder().toString() + "/" + args[0]);
+		fileToDelete.delete();
+		TerminalLog.printMes("RemoveHandler from Dstore",
+				connection.getPort() + " - File '" + args[0] + "', has been deleted successfully");
+		connection.getOutWriter().println(Protocol.REMOVE_ACK_TOKEN + " " + args[0]);
+	};
 }

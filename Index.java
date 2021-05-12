@@ -1,3 +1,4 @@
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -29,9 +30,8 @@ public class Index {
 		dstoresNumber = 0;
 		dstores = new ArrayList<>();
 
-		storeAck = new CompletableFuture<>();
-		timeout = Timeout.IN_PROGRESS;
-		storeAck.completeOnTimeout(Timeout.TIMED_OUT, Controller.getTimeout(), TimeUnit.MILLISECONDS);
+		startTimer();
+
 	}
 
 	public int getFilesize() {
@@ -42,7 +42,62 @@ public class Index {
 		return currentState;
 	}
 
-	synchronized public Timeout ack(Connection dstore) {
+	// TODO: why do I have to say the name of the file to the index lol, fix that
+	// pls
+	// synchronized public void startRemoval(String filename) {
+	// currentState = State.REMOVE_IN_PROGRESS;
+	// ArrayList<CompletableFuture<Timeout>> requests = new ArrayList<>();
+
+	// for (Connection dstore : dstores) {
+	// TerminalLog.printMes("Index File '" + filename + "'",
+	// "Attempting to delete the file for dstore: " + dstore.getPort());
+	// CompletableFuture<Timeout> future = CompletableFuture.supplyAsync(() -> {
+	// // TODO: fix that
+	// ControllerLogger.getInstance().messageSent(dstore.getSocket(),
+	// Protocol.REMOVE_TOKEN);
+	// dstore.getOutWriter().println(Protocol.REMOVE_TOKEN + " " + filename);
+	// try {
+	// dstore.getInReader().readLine();
+	// TerminalLog.printMes("Index File '" + filename + "'",
+	// "has been deleted successfully for dstore: " + dstore.getPort());
+	// } catch (IOException e) {
+	// e.printStackTrace();
+	// }
+	// TerminalLog.printMes("Index File '" + filename + "'",
+	// "Successfully removed the file in dstore: " + dstore.getPort());
+	// return Timeout.SUCCESSFULL;
+	// });
+
+	// requests.add(future);
+	// }
+	// storeAck = CompletableFuture.allOf(requests.toArray(new
+	// CompletableFuture[requests.size()]))
+	// .thenApply(ignore -> Timeout.SUCCESSFULL);
+	// startTimer();
+	// }
+
+	public void startTimer() {
+		storeAck = new CompletableFuture<>();
+		timeout = Timeout.IN_PROGRESS;
+		storeAck.completeOnTimeout(Timeout.TIMED_OUT, Controller.getTimeout(), TimeUnit.MILLISECONDS);
+	}
+
+	synchronized public Timeout ackRemove(Connection dstore) {
+		if (timeout != Timeout.TIMED_OUT) {
+			dstoresNumber--;
+			dstores.remove(dstore);
+
+			if (dstoresNumber == 0) {
+				storeAck.complete(Timeout.SUCCESSFULL);
+				currentState = State.REMOVE_COMPLETE;
+				timeout = Timeout.SUCCESSFULL;
+			}
+		}
+
+		return timeout;
+	}
+
+	synchronized public Timeout ackStore(Connection dstore) {
 		if (timeout != Timeout.TIMED_OUT) {
 			dstoresNumber++;
 			dstores.add(dstore);

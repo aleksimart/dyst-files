@@ -36,5 +36,4 @@ public class DstoreHandler {
 		ControllerLogger.getInstance().dstoreJoined(connection.getSocket(), port);
 		TerminalLog.printMes(NAME, connection.getPort() + " - Dstore successfully added to the list!");
 	};
-
 }

@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.stream.Collectors;
 
@@ -142,6 +143,17 @@ public class Controller {
         indexMap.remove(filename);
     }
 
+    public static ArrayList<Connection> startIndexRemoval(String filename) {
+        Index index = indexMap.get(filename);
+        ArrayList<Connection> dstores = index.getDstores();
+        index.startTimer();
+        return dstores;
+    }
+
+    public static Index.Timeout ackRemovalIndex(String filename, Connection dstore) {
+        return indexMap.get(filename).ackRemove(dstore);
+    }
+
     public static ArrayList<String> listFiles() {
         Iterator<String> it = indexMap.keySet().iterator();
         ArrayList<String> files = new ArrayList<>();
@@ -157,8 +169,8 @@ public class Controller {
         return files;
     }
 
-    public static Index.Timeout ackIndex(String filename, Connection dstore) {
-        return indexMap.get(filename).ack(dstore);
+    public static Index.Timeout ackStorageIndex(String filename, Connection dstore) {
+        return indexMap.get(filename).ackStore(dstore);
     }
 
     // public static int getfileServer(String filename) {
