@@ -1,3 +1,5 @@
+import java.util.concurrent.ExecutionException;
+
 /**
  * ClientHandler
  */
@@ -61,32 +63,52 @@ public class ClientHandler {
 		ControllerLogger.getInstance().messageSent(connection.getSocket(), TerminalLog.stampMes(command.toString()));
 		connection.getOutWriter().println(command);
 
-		/**
-		 * TODO: this isn't the best way. The proper way would be to get all the dstore
-		 * sockets in one place and call the readline on them with timeout and throw a
-		 * timeout socket exception if they are not done on time which means failed
-		 * storage.
-		 */
-		new Thread(() -> {
-			try {
+		try {
+			if (Controller.getIndexTimer(filename).get() != Index.Timeout.SUCCESSFULL) {
+				TerminalLog.printErr("StoreHandler",
+						connection.getPort() + " - Failed to store the file '" + filename + "' before timeout");
+				Controller.deleteIndex(filename);
 				TerminalLog.printMes("StoreHandler",
-						connection.getPort() + " - Starting a timeout to store a file '" + filename + "'");
-				Thread.sleep(Controller.getTimeout());
-				if (Controller.getIndexState(filename) != Index.State.STORE_COMPLETE) {
-					TerminalLog.printErr("StoreHandler",
-							connection.getPort() + " - Failed to store the file '" + filename + "' before timeout");
-					Controller.deleteIndex(filename);
-					TerminalLog.printMes("StoreHandler",
-							connection.getPort() + " - File '" + filename + "' has been deleted");
-					return;
-				}
-				TerminalLog.printMes("StoreHandler",
-						connection.getPort() + " - File '" + filename + "' has been successfully stored!");
-			} catch (InterruptedException e) {
-				e.printStackTrace();
+						connection.getPort() + " - File '" + filename + "' has been deleted");
+				return;
 			}
 
-		}).start();
+			TerminalLog.printMes("StoreHandler",
+					connection.getPort() + " - File '" + filename + "' has been successfully stored!");
+		} catch (InterruptedException | ExecutionException e1) {
+			e1.printStackTrace();
+		}
+
+		// /**
+		// * TODO: this isn't the best way. The proper way would be to get all the
+		// dstore
+		// * sockets in one place and call the readline on them with timeout and throw a
+		// * timeout socket exception if they are not done on time which means failed
+		// * storage.
+		// */
+		// new Thread(() -> {
+		// try {
+		// TerminalLog.printMes("StoreHandler",
+		// connection.getPort() + " - Starting a timeout to store a file '" + filename +
+		// "'");
+		// Thread.sleep(Controller.getTimeout());
+		// if (Controller.getIndexState(filename) != Index.State.STORE_COMPLETE) {
+		// TerminalLog.printErr("StoreHandler",
+		// connection.getPort() + " - Failed to store the file '" + filename + "' before
+		// timeout");
+		// Controller.deleteIndex(filename);
+		// TerminalLog.printMes("StoreHandler",
+		// connection.getPort() + " - File '" + filename + "' has been deleted");
+		// return;
+		// }
+		// TerminalLog.printMes("StoreHandler",
+		// connection.getPort() + " - File '" + filename + "' has been successfully
+		// stored!");
+		// } catch (InterruptedException e) {
+		// e.printStackTrace();
+		// }
+
+		// }).start();
 
 	};
 
@@ -109,7 +131,7 @@ public class ClientHandler {
 			return;
 		}
 
-		if (Controller.ackIndex(args[0], connection)) {
+		if (Controller.ackIndex(args[0], connection) == Index.Timeout.SUCCESSFULL) {
 			ControllerLogger.getInstance().messageSent(connection.getSocket(),
 					TerminalLog.stampMes(Protocol.STORE_COMPLETE_TOKEN));
 			Controller.getStorer(args[0]).getOutWriter().println(Protocol.STORE_COMPLETE_TOKEN);

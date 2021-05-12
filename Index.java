@@ -1,5 +1,7 @@
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public class Index {
 
@@ -7,11 +9,18 @@ public class Index {
 		STORE_IN_PROGRESS, STORE_COMPLETE, REMOVE_IN_PROGRESS, REMOVE_COMPLETE
 	}
 
+	public enum Timeout {
+		IN_PROGRESS, SUCCESSFULL, TIMED_OUT
+	}
+
 	private int filesize;
 	private State currentState;
 	private Connection storer;
 	private int dstoresNumber;
 	private ArrayList<Connection> dstores;
+	private Timeout timeout;
+
+	private CompletableFuture<Timeout> storeAck;
 
 	public Index(int filesize, Connection storer) {
 		this.filesize = filesize;
@@ -19,6 +28,9 @@ public class Index {
 		currentState = State.STORE_IN_PROGRESS;
 		dstoresNumber = 0;
 		dstores = new ArrayList<>();
+		storeAck = new CompletableFuture<>();
+		timeout = Timeout.IN_PROGRESS;
+		storeAck.completeOnTimeout(Timeout.TIMED_OUT, Controller.getTimeout(), TimeUnit.MILLISECONDS);
 	}
 
 	public int getFilesize() {
@@ -29,16 +41,19 @@ public class Index {
 		return currentState;
 	}
 
-	synchronized public boolean ack(Connection dstore) {
-		dstoresNumber++;
-		dstores.add(dstore);
+	synchronized public Timeout ack(Connection dstore) {
+		if (timeout != Timeout.TIMED_OUT) {
+			dstoresNumber++;
+			dstores.add(dstore);
 
-		if (dstoresNumber == Controller.getR()) {
-			currentState = State.STORE_COMPLETE;
-			return true;
+			if (dstoresNumber == Controller.getR()) {
+				storeAck.complete(Timeout.SUCCESSFULL);
+				currentState = State.STORE_COMPLETE;
+				timeout = Timeout.SUCCESSFULL;
+			}
 		}
 
-		return false;
+		return timeout;
 	}
 
 	public int getDstoresNumber() {
@@ -61,6 +76,10 @@ public class Index {
 
 	public ArrayList<Connection> getDstores() {
 		return new ArrayList<Connection>(dstores);
+	}
+
+	public CompletableFuture<Timeout> getStoreAck() {
+		return storeAck;
 	}
 
 }

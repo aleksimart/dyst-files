@@ -3,6 +3,7 @@ import java.net.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -56,7 +57,7 @@ public class Controller {
         }
     }
 
-    public static boolean ackIndex(String filename, Connection dstore) {
+    public static Index.Timeout ackIndex(String filename, Connection dstore) {
         return indexMap.get(filename).ack(dstore);
     }
 
@@ -128,6 +129,10 @@ public class Controller {
 
         indexMap.put(filename, new Index(filesize, storer));
         return true;
+    }
+
+    public static CompletableFuture<Index.Timeout> getIndexTimer(String filename) {
+        return indexMap.get(filename).getStoreAck();
     }
 
     public static ArrayList<Connection> getIndexServers(String filename) {
