@@ -38,12 +38,11 @@ public class Controller {
         initLogger();
 
         indexMap = new ConcurrentHashMap<>();
-        // dstores = new PriorityBlockingQueue<>(R,
-        // Comparator.comparingInt(DstoreProps::getSize));
         dstores = new ConcurrentHashMap<>();
 
+        ServerSocket ss = null;
         try {
-            ServerSocket ss = new ServerSocket(cport);
+            ss = new ServerSocket(cport);
             for (;;) {
                 TerminalLog.printMes(NAME, "Ready to accept connections");
                 Socket dstore = ss.accept();
@@ -53,14 +52,24 @@ public class Controller {
             }
         } catch (IOException e) {
             e.printStackTrace();
-            System.exit(1);
+        } finally {
+            closeServer(ss);
         }
     }
 
-    public static Index.Timeout ackIndex(String filename, Connection dstore) {
-        return indexMap.get(filename).ack(dstore);
+    public static void closeServer(ServerSocket ss) {
+        try {
+            if (ss != null) {
+                ss.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
+    /**
+     * Adding/Removing/Getting Dstores
+     */
     public static void addDstore(Connection dstore, int port) {
         dstores.put(dstore, new DstoreProps(port));
     }
@@ -88,14 +97,6 @@ public class Controller {
         TerminalLog.printMes(NAME, "Successfully removed a dstore '" + port + "'");
     }
 
-    public static int getfileServer(String filename) {
-        return dstores.get(indexMap.get(filename).getStore()).getPort();
-    }
-
-    public static int getDstoreServerPort(Connection connection) {
-        return dstores.get(connection).getPort();
-    }
-
     public static Integer[] getDstores(int filesize) {
 
         if (!isEnoughDstores()) {
@@ -119,9 +120,13 @@ public class Controller {
         return storingDstores;
     }
 
-    private void rebalance() {
+    public static int getDstoreServerPort(Connection connection) {
+        return dstores.get(connection).getPort();
     }
 
+    /**
+     * Index related manipulations
+     */
     public static boolean addIndex(String filename, int filesize, Connection storer) {
         if (indexExists(filename)) {
             return false;
@@ -130,6 +135,18 @@ public class Controller {
         indexMap.put(filename, new Index(filesize, storer));
         return true;
     }
+
+    public static void deleteIndex(String filename) {
+        indexMap.remove(filename);
+    }
+
+    public static Index.Timeout ackIndex(String filename, Connection dstore) {
+        return indexMap.get(filename).ack(dstore);
+    }
+
+    // public static int getfileServer(String filename) {
+    // return dstores.get(indexMap.get(filename).getStore()).getPort();
+    // }
 
     public static CompletableFuture<Index.Timeout> getIndexTimer(String filename) {
         return indexMap.get(filename).getStoreAck();
@@ -141,10 +158,6 @@ public class Controller {
 
     public static Index.State getIndexState(String filename) {
         return indexMap.get(filename).getCurrentState();
-    }
-
-    public static void deleteIndex(String filename) {
-        indexMap.remove(filename);
     }
 
     public static boolean indexExists(String filename) {
@@ -159,6 +172,9 @@ public class Controller {
         return indexMap.get(filename).getStorer();
     }
 
+    /**
+     * Initialisation Stuff
+     */
     private static void initLogger() {
         try {
             ControllerLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL);

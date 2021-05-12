@@ -57,6 +57,7 @@ public class DstoreServerHandler {
 		}
 	};
 
+	// TODO: Need to close the connection if the file is not here
 	public static Handler loadHandler = (String args[], Connection connection) -> {
 		try {
 			FileInputStream inFile = new FileInputStream(Dstore.getFile_folder().toString() + "/" + args[0]);

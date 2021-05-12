@@ -1,4 +1,3 @@
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -25,9 +24,11 @@ public class Index {
 	public Index(int filesize, Connection storer) {
 		this.filesize = filesize;
 		this.storer = storer;
+
 		currentState = State.STORE_IN_PROGRESS;
 		dstoresNumber = 0;
 		dstores = new ArrayList<>();
+
 		storeAck = new CompletableFuture<>();
 		timeout = Timeout.IN_PROGRESS;
 		storeAck.completeOnTimeout(Timeout.TIMED_OUT, Controller.getTimeout(), TimeUnit.MILLISECONDS);
@@ -70,11 +71,13 @@ public class Index {
 		return dstores.size() == 0;
 	}
 
+	// TODO: not sure that I need to synch here
 	synchronized public Connection getStore() {
 		return dstores.get(0);
 	}
 
 	public ArrayList<Connection> getDstores() {
+		// Making a copy here for safety
 		return new ArrayList<Connection>(dstores);
 	}
 
