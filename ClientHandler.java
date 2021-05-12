@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -57,6 +58,17 @@ public class ClientHandler {
 			e1.printStackTrace();
 		}
 
+	};
+
+	// TODO: Possibly give a handler a return type of the message to log?
+	public static Handler listHandler = (String[] args, Connection connection) -> {
+		ArrayList<String> files = Controller.listFiles();
+		StringBuilder command = new StringBuilder(Protocol.LIST_TOKEN);
+		for (String file : files) {
+			command.append(" " + file);
+		}
+
+		connection.getOutWriter().println(command);
 	};
 
 	// /**

@@ -1,7 +1,9 @@
 import java.io.*;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -138,6 +140,21 @@ public class Controller {
 
     public static void deleteIndex(String filename) {
         indexMap.remove(filename);
+    }
+
+    public static ArrayList<String> listFiles() {
+        Iterator<String> it = indexMap.keySet().iterator();
+        ArrayList<String> files = new ArrayList<>();
+
+        // Only List those that are stored already
+        while (it.hasNext()) {
+            String filename = it.next();
+            if (indexMap.get(filename).getCurrentState() == Index.State.STORE_COMPLETE) {
+                files.add(filename);
+            }
+        }
+
+        return files;
     }
 
     public static Index.Timeout ackIndex(String filename, Connection dstore) {

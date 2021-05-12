@@ -14,7 +14,8 @@ public class myClient {
 		host = InetAddress.getLocalHost();
 		PrintWriter oos = null;
 		BufferedReader ois = null;
-		checkTimeout();
+		// checkTimeout();
+		func1();
 
 	}
 
@@ -138,11 +139,14 @@ public class myClient {
 			oos.flush();
 			System.out.println(ois.readLine());
 
-			// close resources
-			ois.close();
-			oos.close();
-			Thread.sleep(100);
-
 		}
+
+		oos.println(Protocol.LIST_TOKEN);
+		oos.flush();
+		System.out.println(ois.readLine());
+		// close resources
+		ois.close();
+		oos.close();
+		Thread.sleep(100);
 	}
 }

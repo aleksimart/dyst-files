@@ -110,6 +110,10 @@ public class ConnectionHandler implements Runnable {
 				return DstoreHandler.joinHandler;
 			case Protocol.STORE_ACK_TOKEN:
 				return ClientHandler.storeAcknowledgeHandler;
+			case Protocol.LIST_TOKEN:
+				isDstore = false;
+				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");
+				return ClientHandler.listHandler;
 			case Protocol.LOAD_TOKEN:
 				isDstore = false;
 				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");
@@ -177,7 +181,7 @@ public class ConnectionHandler implements Runnable {
 				}
 
 			case Protocol.STORE_TOKEN:
-				TerminalLog.printMes(NAME, connection.getPort() + " - New client attempts to join the network!");
+				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");
 				isDstore = false;
 
 				if (!Controller.isEnoughDstores()) {
