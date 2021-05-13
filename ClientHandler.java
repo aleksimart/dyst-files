@@ -210,10 +210,11 @@ public class ClientHandler {
 		}
 
 		int dstorePort = Controller.getDstoreServerPort(dstoresLoad.remove(0));
+		int filesize = Controller.getIndexSize(filename);
 
 		TerminalLog.printHandlerMes("LoadHandler", connection.getPort(),
 				"Found where to load the file '" + filename + "' from");
-		Handler.sendConrollerMes(connection, Protocol.LOAD_FROM_TOKEN + " " + dstorePort);
+		Handler.sendConrollerMes(connection, Protocol.LOAD_FROM_TOKEN + " " + dstorePort + " " + filesize);
 
 	};
 

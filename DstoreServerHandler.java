@@ -59,20 +59,30 @@ public class DstoreServerHandler {
 
 	// TODO: Need to close the connection if the file is not here
 	public static Handler loadHandler = (String args[], Connection connection) -> {
+		// Check args number
+		if (args.length != 1) {
+			TerminalLog.printHandlerErrMes("LoadHandler from Dstore", connection.getPort(),
+					"Invalid number of args, expected: 1, but got: " + args.length);
+			return;
+		}
+
+		String filename = args[0];
+
 		try {
-			FileInputStream inFile = new FileInputStream(Dstore.getFile_folder().toString() + "/" + args[0]);
-			TerminalLog.printMes("LoadHandler from Dstore",
-					connection.getPort() + " - Found file '" + args[0] + "', starting the transfer");
+			FileInputStream inFile = new FileInputStream(new File(Dstore.getFile_folder(), filename));
+			TerminalLog.printHandlerMes("LoadHandler from Dstore", connection.getPort(),
+					"Found file '" + filename + "', starting the transfer");
 
 			byte[] a = inFile.readAllBytes();
 			connection.getOut().write(a);
 			connection.getOut().flush();
 			inFile.close();
 
-			TerminalLog.printMes("LoadHandler from Dstore",
-					connection.getPort() + " - File '" + args[0] + "', has been transferred successfully");
+			TerminalLog.printHandlerMes("LoadHandler from Dstore", connection.getPort(),
+					"File '" + filename + "', has been transferred successfully");
 		} catch (IOException e) {
-			// TODO: Fix this
+			TerminalLog.printHandlerErrMes("LoadHandler from Dstore", connection.getPort(),
+					"Error when trying to transfer file '" + filename + "', check trace for more information");
 			e.printStackTrace();
 		}
 	};
@@ -80,7 +90,7 @@ public class DstoreServerHandler {
 	public static Handler removeHandler = (String args[], Connection connection) -> {
 		TerminalLog.printMes("RemoveHandler from Dstore",
 				connection.getPort() + " - Found file '" + args[0] + "', starting the deletion process");
-		File fileToDelete = new File(Dstore.getFile_folder().toString() + "/" + args[0]);
+		File fileToDelete = new File(Dstore.getFile_folder(), args[0]);
 		fileToDelete.delete();
 		TerminalLog.printMes("RemoveHandler from Dstore",
 				connection.getPort() + " - File '" + args[0] + "', has been deleted successfully");
