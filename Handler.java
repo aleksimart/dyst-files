@@ -5,4 +5,9 @@ public interface Handler {
 		ControllerLogger.getInstance().messageSent(connection.getSocket(), TerminalLog.stampMes(mes));
 		connection.getOutWriter().println(mes);
 	}
+
+	static void sendDstoreMes(Connection connection, String mes) {
+		DstoreLogger.getInstance().messageSent(connection.getSocket(), TerminalLog.stampMes(mes));
+		connection.getOutWriter().println(mes);
+	}
 }

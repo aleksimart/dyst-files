@@ -65,7 +65,6 @@ public class Dstore {
 					timeout = Integer.parseInt(arg);
 					break;
 				case "file folder":
-					// TODO: possibly add a check that it the folder is possible to create
 					initFileFolder(arg);
 					break;
 				default:
@@ -111,6 +110,7 @@ public class Dstore {
 			startServer();
 
 			String line;
+
 			while ((line = in.readLine()) != null) {
 				String[] command = line.split(" ");
 				String[] cmdArgs = Arrays.copyOfRange(command, 1, command.length);
@@ -119,15 +119,12 @@ public class Dstore {
 					case Protocol.REMOVE_TOKEN:
 						DstoreServerHandler.removeHandler.handle(cmdArgs, connection);
 					default:
-
 				}
-
 			}
-
 		} catch (IOException e) {
 			e.printStackTrace();
-			System.exit(1);
 		} finally {
+
 			// Close the dstore server
 			if (serverCreated() && server.isOpen()) {
 				server.close();
@@ -161,16 +158,12 @@ public class Dstore {
 
 	// TODO: yeah make sure to send it from this connection
 	public static void ackStorage(String fileName) {
-		out.println(Protocol.STORE_ACK_TOKEN + " " + fileName);
+		Handler.sendDstoreMes(connection, Protocol.STORE_ACK_TOKEN + " " + fileName);
 	}
 
-	// TODO: Might just ask to send the response as LIST
 	private static void joinController() throws IOException {
 		TerminalLog.printMes(NAME, "Attempting to join the controller");
-		String message = Protocol.JOIN_TOKEN + " " + port;
-		out.println(message);
-		// Log it
-		DstoreLogger.getInstance().messageSent(socket, TerminalLog.stampMes(message));
+		Handler.sendDstoreMes(connection, Protocol.JOIN_TOKEN + " " + port);
 		TerminalLog.printMes(NAME, "Joined Successfully!");
 	}
 
@@ -182,12 +175,20 @@ public class Dstore {
 		new Thread(server).start();
 	}
 
-	private static boolean serverCreated() {
+	public static boolean serverCreated() {
 		return (server != null);
+	}
+
+	public static void closeServer() {
+		server.close();
 	}
 
 	public static File getFile_folder() {
 		return file_folder;
+	}
+
+	public static int getTimeout() {
+		return timeout;
 	}
 
 }

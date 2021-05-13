@@ -45,6 +45,10 @@ public class ConnectionHandler implements Runnable {
 					readCommands(dstoreParser);
 					break;
 			}
+		} catch (SocketTimeoutException e) {
+			TerminalLog.printHandlerErrMes(NAME, connection.getPort(),
+					"Waiting time for a request has just timed out!");
+			e.printStackTrace();
 		} catch (IOException e) {
 			TerminalLog.printHandlerErrMes(NAME, connection.getPort(), "Failed to read input from the connection!");
 			e.printStackTrace();

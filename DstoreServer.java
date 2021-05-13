@@ -23,6 +23,8 @@ public class DstoreServer implements Runnable {
 			for (;;) {
 				TerminalLog.printMes(NAME, "Ready to accept connections");
 				Socket client = ss.accept();
+				// TODO: I've set a timeout for a client to send something
+				client.setSoTimeout(Dstore.getTimeout());
 				TerminalLog.printMes(NAME, "New connection from port " + client.getPort());
 				TerminalLog.printMes(NAME, "Transfering control to handler to determine the type of the connection");
 				new Thread(new ConnectionHandler(client, ConnectionHandler.ServerType.DSTORE_SERVER)).start();

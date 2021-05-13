@@ -8,49 +8,44 @@ import java.io.InputStream;
  * DstoreConnection
  */
 public class DstoreServerHandler {
-	// private String command;
-	// private String[] args;
-	// private Connection connection;
 
-	// public DstoreServerHandler(Connection connection, String[] args) {
-	// command = args[0];
-	// this.args = new String[args.length - 1];
-	// this.connection = connection;
-
-	// for (int i = 1; i < args.length; i++) {
-	// this.args[i - 1] = args[i];
-	// }
-	// }
-
-	// public void handle() {
-	// switch (command) {
-	// case Protocol.STORE_TOKEN:
-	// store();
-	// break;
-	// default:
-	// System.err.println("Err, not implemented yet, or wrong protocol: " +
-	// command);
-	// }
-	// }
-
-	// TODO: possibly don't actually do a while loop when dealing with the dstore
-	// client connection but just one command?
 	public static Handler storeHandler = (String args[], Connection connection) -> {
-		File file = new File(Dstore.getFile_folder().getAbsolutePath() + "/" + args[0]);
-		TerminalLog.printMes("StoreHandler from Dstore",
-				connection.getPort() + " - Created file '" + args[0] + "', sending acknowledgement");
-		DstoreLogger.getInstance().messageSent(connection.getSocket(), Protocol.ACK_TOKEN);
-		connection.getOutWriter().println(Protocol.ACK_TOKEN);
+		// Check args number
+		if (args.length != 2) {
+			TerminalLog.printHandlerErrMes("StoreHandler from Dstore", connection.getPort(),
+					"Invalid number of args, expected: 2, but got: " + args.length);
+			return;
+		}
+
+		String filename = args[0];
+
+		// Check second arg is int
+		int filesize;
+		try {
+			filesize = Integer.parseInt(args[1]);
+		} catch (NumberFormatException e) {
+			TerminalLog.printHandlerErrMes("StoreHandler from Dstore", connection.getPort(),
+					"Error, second argument is expected to be an integer");
+			return;
+		}
+
+		File file = new File(Dstore.getFile_folder(), filename);
+		TerminalLog.printHandlerMes("StoreHandler from Dstore", connection.getPort(),
+				"Created file '" + filename + "', sending acknowledgement");
+		Handler.sendDstoreMes(connection, Protocol.ACK_TOKEN);
 
 		try { // TODO: pretty sure we don't need to log anything related to a file
 			FileOutputStream fileStream = new FileOutputStream(file);
-			byte[] contents = connection.getIn().readNBytes(Integer.parseInt(args[1]));
+			byte[] contents = connection.getIn().readNBytes(filesize);
+
 			fileStream.write(contents);
 			fileStream.close();
-			TerminalLog.printMes("StoreHandler from Dstore",
-					connection.getPort() + " - Stored file '" + args[0] + "', sending acknowledgement to Controller");
-			Dstore.ackStorage(args[0]);
 
+			TerminalLog.printHandlerMes("StoreHandler from Dstore", connection.getPort(),
+					"Stored file '" + filename + "', sending acknowledgement to Controller");
+			Dstore.ackStorage(filename);
+
+			// Clean up the line
 			connection.getInReader().readLine();
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -88,12 +83,21 @@ public class DstoreServerHandler {
 	};
 
 	public static Handler removeHandler = (String args[], Connection connection) -> {
-		TerminalLog.printMes("RemoveHandler from Dstore",
-				connection.getPort() + " - Found file '" + args[0] + "', starting the deletion process");
-		File fileToDelete = new File(Dstore.getFile_folder(), args[0]);
+		// Check args number
+		if (args.length != 1) {
+			TerminalLog.printHandlerErrMes("RemoveHandler from Dstore", connection.getPort(),
+					"Invalid number of args, expected: 1, but got: " + args.length);
+			return;
+		}
+
+		String filename = args[0];
+
+		TerminalLog.printHandlerMes("RemoveHandler from Dstore", connection.getPort(),
+				"Found file '" + filename + "', starting the deletion process");
+		File fileToDelete = new File(Dstore.getFile_folder(), filename);
 		fileToDelete.delete();
-		TerminalLog.printMes("RemoveHandler from Dstore",
-				connection.getPort() + " - File '" + args[0] + "', has been deleted successfully");
-		connection.getOutWriter().println(Protocol.REMOVE_ACK_TOKEN + " " + args[0]);
+		TerminalLog.printHandlerMes("RemoveHandler from Dstore", connection.getPort(),
+				"File '" + filename + "', has been deleted successfully");
+		Handler.sendDstoreMes(connection, Protocol.REMOVE_ACK_TOKEN + " " + args[0]);
 	};
 }

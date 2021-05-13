@@ -70,6 +70,10 @@ public class Controller {
         }
     }
 
+    public static int getIndexSize(String filename) {
+        return indexMap.get(filename).getFilesize();
+    }
+
     /**
      * Adding/Removing/Getting Dstores
      */

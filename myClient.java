@@ -102,6 +102,7 @@ public class myClient {
 			String[] commands1 = message.split(" ");
 
 			int dstorePort = Integer.parseInt(commands1[1]);
+			int filesize = Integer.parseInt(commands1[2]);
 			Socket dStoreSocket = new Socket(host.getHostName(), dstorePort);
 
 			PrintWriter dStoreWriter = new PrintWriter(dStoreSocket.getOutputStream(), true);
@@ -110,7 +111,7 @@ public class myClient {
 			dStoreWriter.println(Protocol.LOAD_DATA_TOKEN + " fileNames" + i);
 			dStoreWriter.flush();
 
-			String newMessage = new String(dStoreReader.readNBytes(13));
+			String newMessage = new String(dStoreReader.readNBytes(filesize));
 			System.out.println("Successfull read: " + newMessage);
 			dStoreSocket.close();
 
