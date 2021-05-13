@@ -64,7 +64,14 @@ public class DstoreServerHandler {
 		String filename = args[0];
 
 		try {
-			FileInputStream inFile = new FileInputStream(new File(Dstore.getFile_folder(), filename));
+			File file = new File(Dstore.getFile_folder(), filename);
+			if (!file.exists()) {
+				TerminalLog.printHandlerMes("LoadHandler from Dstore", connection.getPort(),
+						"Failed to find the file '" + filename + "'");
+				return;
+			}
+
+			FileInputStream inFile = new FileInputStream(file);
 			TerminalLog.printHandlerMes("LoadHandler from Dstore", connection.getPort(),
 					"Found file '" + filename + "', starting the transfer");
 
