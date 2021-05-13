@@ -102,6 +102,11 @@ public class DstoreServerHandler {
 		TerminalLog.printHandlerMes("RemoveHandler from Dstore", connection.getPort(),
 				"Found file '" + filename + "', starting the deletion process");
 		File fileToDelete = new File(Dstore.getFile_folder(), filename);
+		if (!fileToDelete.exists()) {
+			TerminalLog.printHandlerMes("RemoveHandler from Dstore", connection.getPort(),
+					"Failed to find the file '" + filename + "'");
+			Handler.sendDstoreMes(connection, Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN + " " + filename);
+		}
 		fileToDelete.delete();
 		TerminalLog.printHandlerMes("RemoveHandler from Dstore", connection.getPort(),
 				"File '" + filename + "', has been deleted successfully");
