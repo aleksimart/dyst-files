@@ -135,7 +135,9 @@ public class Controller {
             return false;
         }
 
-        indexMap.put(filename, new Index(filesize, storer));
+        Index index = new Index(filesize, storer);
+        indexMap.put(filename, index);
+        index.startTimer();
         return true;
     }
 
@@ -195,10 +197,6 @@ public class Controller {
 
     public static boolean isEnoughDstores() {
         return dstores.size() >= R;
-    }
-
-    public static Connection getStorer(String filename) {
-        return indexMap.get(filename).getStorer();
     }
 
     /**

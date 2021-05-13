@@ -15,7 +15,6 @@ public class Index {
 
 	private int filesize;
 	private State currentState;
-	private Connection storer;
 	private int dstoresNumber;
 	private ArrayList<Connection> dstores;
 	private Timeout timeout;
@@ -24,13 +23,9 @@ public class Index {
 
 	public Index(int filesize, Connection storer) {
 		this.filesize = filesize;
-		this.storer = storer;
-
 		currentState = State.STORE_IN_PROGRESS;
 		dstoresNumber = 0;
 		dstores = new ArrayList<>();
-
-		startTimer();
 
 	}
 
@@ -114,10 +109,6 @@ public class Index {
 
 	public int getDstoresNumber() {
 		return dstoresNumber;
-	}
-
-	public Connection getStorer() {
-		return storer;
 	}
 
 	// returns true if the index is no longer stored anywhere
