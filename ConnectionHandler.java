@@ -75,7 +75,7 @@ public class ConnectionHandler implements Runnable {
 
 			String[] command = line.split(" ");
 			TerminalLog.printHandlerMes(NAME, connection.getPort(), "Command: " + Arrays.toString(command));
-			Handler handler = parser.parse(command, TerminalLog.stampMes(line));
+			Handler handler = parser.parse(command[0], TerminalLog.stampMes(line));
 
 			String[] args = Arrays.copyOfRange(command, 1, command.length);
 
@@ -91,56 +91,40 @@ public class ConnectionHandler implements Runnable {
 		TerminalLog.printHandlerMes(NAME, connection.getPort(), "Terminated connection");
 	}
 
-	public CommandParser dstoreParser = (String[] command, String mes) -> {
+	public CommandParser dstoreParser = (String command, String mes) -> {
 		DstoreLogger.getInstance().messageReceived(connection.getSocket(), mes);
 		isDstore = false;
-		switch (command[0]) {
+		switch (command) {
 			case Protocol.STORE_TOKEN:
 				return DstoreServerHandler.storeHandler;
 			case Protocol.LOAD_DATA_TOKEN:
-				TerminalLog.printMes(NAME, connection.getPort() + " - New request to load a file!");
+				TerminalLog.printHandlerMes(NAME, connection.getPort(), "New request to load a file!");
 				return DstoreServerHandler.loadHandler;
 			case Protocol.REMOVE_TOKEN:
-				TerminalLog.printMes(NAME, connection.getPort() + " - New request to delete a file!");
+				TerminalLog.printHandlerMes(NAME, connection.getPort(), "New request to delete a file!");
 				// TODO: this actually comes from controller to dstore and not server ;c
 				return DstoreServerHandler.removeHandler;
 			default:
-				// TODO: Logger and Handler
-				TerminalLog.printMes(NAME, connection.getPort()
-						+ " - this command hasn't been implemented yet or it doesn't exist: " + command[0]);
+				TerminalLog.printHandlerErrMes(NAME, connection.getPort(), "This command doesn't exist: " + command);
 				return null;
 		}
 	};
 
-	public CommandParser controllerParser = (String[] command, String mes) -> {
-		ControllerLogger.getInstance().messageReceived(connection.getSocket(), mes);
-		switch (command[0]) {
-			case Protocol.JOIN_TOKEN:
-				isDstore = true;
-				return DstoreHandler.joinHandler;
-			case Protocol.STORE_ACK_TOKEN:
-				return ClientHandler.storeAcknowledgeHandler;
-			case Protocol.REMOVE_ACK_TOKEN:
-				return ClientHandler.removeAcknowledgeHandler;
+	private CommandParser clientControllerParser = (String command, String mes) -> {
+		isDstore = false;
+		TerminalLog.printHandlerMes(NAME, connection.getPort(), "Potential Client Request!");
+
+		switch (command) {
 			case Protocol.LIST_TOKEN:
-				isDstore = false;
-				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");
 				return ClientHandler.listHandler;
 			case Protocol.REMOVE_TOKEN:
-				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");
-				isDstore = false;
-
 				if (!Controller.isEnoughDstores()) {
 					return ClientHandler.notEnoughDstoresHandler;
 				} else {
 					return ClientHandler.removeHandler;
 				}
 			case Protocol.LOAD_TOKEN:
-				isDstore = false;
-				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");
-
-				// TODO: ughh assumption here that args are fine
-				loader = new ClientHandler(command[1]);
+				loader = new ClientHandler();
 
 				if (!Controller.isEnoughDstores()) {
 					return ClientHandler.notEnoughDstoresHandler;
@@ -148,14 +132,8 @@ public class ConnectionHandler implements Runnable {
 					return loader.loadHandler;
 				}
 			case Protocol.RELOAD_TOKEN:
-				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");
-				isDstore = false;
-
 				if (!Controller.isEnoughDstores()) {
-					TerminalLog.printErr(NAME,
-							connection.getPort() + " - Cannot connect! Not enough dstores joined the network");
-					return (String[] args, Connection connection) -> connection.getOutWriter()
-							.println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+					return ClientHandler.notEnoughDstoresHandler;
 				} else {
 					if (loader.getDstoresLoad().size() == 0) {
 						return ClientHandler.errorLoadingHandler;
@@ -164,9 +142,6 @@ public class ConnectionHandler implements Runnable {
 				}
 
 			case Protocol.STORE_TOKEN:
-				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");
-				isDstore = false;
-
 				if (!Controller.isEnoughDstores()) {
 					return ClientHandler.notEnoughDstoresHandler;
 				} else {
@@ -174,10 +149,26 @@ public class ConnectionHandler implements Runnable {
 				}
 			default:
 				// TODO: Logger and handler
-				isDstore = false;
-				TerminalLog.printMes(NAME, connection.getPort() + " - Invalid command sent: " + command[0]);
+				TerminalLog.printHandlerErrMes(NAME, connection.getPort(), "Invalid command sent: " + command);
 				return null;
+
+		}
+	};
+
+	public CommandParser controllerParser = (String command, String mes) -> {
+		ControllerLogger.getInstance().messageReceived(connection.getSocket(), mes);
+		isDstore = true;
+		switch (command) {
+			case Protocol.JOIN_TOKEN:
+				return DstoreHandler.joinHandler;
+			case Protocol.STORE_ACK_TOKEN:
+				return ClientHandler.storeAcknowledgeHandler;
+			case Protocol.REMOVE_ACK_TOKEN:
+				return ClientHandler.removeAcknowledgeHandler;
+			default:
+				return clientControllerParser.parse(command, mes);
 		}
 
 	};
+
 }

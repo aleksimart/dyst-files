@@ -10,10 +10,6 @@ public class ClientHandler {
 
 	private ArrayList<Connection> dstoresLoad;
 
-	public ClientHandler(String filename) {
-		dstoresLoad = Controller.getIndexServers(filename);
-	}
-
 	// TODO: Argument check
 	public static Handler storeHandler = (String[] args, Connection connection) -> {
 		// Check args number
@@ -207,6 +203,10 @@ public class ClientHandler {
 					"File '" + filename + "' doesn't exist");
 			Handler.sendConrollerMes(connection, Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
 			return;
+		}
+
+		if (dstoresLoad == null) {
+			dstoresLoad = Controller.getIndexServers(filename);
 		}
 
 		int dstorePort = Controller.getDstoreServerPort(dstoresLoad.remove(0));

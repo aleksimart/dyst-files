@@ -3,6 +3,6 @@
  */
 public interface CommandParser {
 
-	public Handler parse(String[] command, String mes);
+	public Handler parse(String command, String mes);
 
 }
