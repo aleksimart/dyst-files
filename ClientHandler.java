@@ -8,6 +8,12 @@ import java.util.concurrent.ExecutionException;
  */
 public class ClientHandler {
 
+	private ArrayList<Connection> dstoresLoad;
+
+	public ClientHandler(String filename) {
+		dstoresLoad = Controller.getIndexServers(filename);
+	}
+
 	public static Handler storeHandler = (String[] args, Connection connection) -> {
 		String filename = args[0];
 		int filesize = Integer.parseInt(args[1]);
@@ -19,7 +25,6 @@ public class ClientHandler {
 			return;
 		}
 
-		// TODO: check for the value is null
 		Integer[] ports = Controller.getDstores(filesize);
 		if (ports == null) {
 			TerminalLog.printErr("StoreHandler", connection.getPort()
@@ -121,16 +126,36 @@ public class ClientHandler {
 
 	};
 
-	// TODO: move all that load mess from connection handler to here
-	public static Handler subLoadHandler = (String[] args, Connection connection) -> {
+	// // TODO: move all that load mess from connection handler to here
+	// public static Handler subLoadHandler = (String[] args, Connection connection)
+	// -> {
+	// String filename = args[0];
+	// int dstorePort = Integer.parseInt(args[1]);
+
+	// TerminalLog.printErr("LoadHandler",
+	// connection.getPort() + " - Found where to load the file '" + filename + "'
+	// from");
+	// ControllerLogger.getInstance().messageSent(connection.getSocket(),
+	// TerminalLog.stampMes(Protocol.LOAD_FROM_TOKEN + " " + dstorePort));
+	// connection.getOutWriter().println(Protocol.LOAD_FROM_TOKEN + " " +
+	// dstorePort);
+	// };
+
+	public Handler loadHandler = (String[] args, Connection connection) -> {
 		String filename = args[0];
-		int dstorePort = Integer.parseInt(args[1]);
+
+		if (!Controller.indexExists(filename) || Controller.getIndexState(filename) != Index.State.STORE_COMPLETE) {
+			TerminalLog.printErr("LoadHandler", connection.getPort() + " - File '" + filename + "' doesn't exist");
+			Handler.sendConrollerMes(connection, Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
+			return;
+		}
+
+		int dstorePort = Controller.getDstoreServerPort(dstoresLoad.remove(0));
 
 		TerminalLog.printErr("LoadHandler",
 				connection.getPort() + " - Found where to load the file '" + filename + "' from");
-		ControllerLogger.getInstance().messageSent(connection.getSocket(),
-				TerminalLog.stampMes(Protocol.LOAD_FROM_TOKEN + " " + dstorePort));
-		connection.getOutWriter().println(Protocol.LOAD_FROM_TOKEN + " " + dstorePort);
+		Handler.sendConrollerMes(connection, Protocol.LOAD_FROM_TOKEN + " " + dstorePort);
+
 	};
 
 	public static Handler storeAcknowledgeHandler = (String[] args, Connection connection) -> {
@@ -154,4 +179,11 @@ public class ClientHandler {
 				TerminalLog.stampMes(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN));
 		connection.getOutWriter().println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
 	};
+
+	public static Handler errorLoadingHandler = (String[] args, Connection connection) -> connection.getOutWriter()
+			.println(Protocol.ERROR_LOAD_TOKEN);
+
+	public ArrayList<Connection> getDstoresLoad() {
+		return dstoresLoad;
+	}
 }

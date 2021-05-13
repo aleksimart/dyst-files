@@ -7,7 +7,7 @@ import java.util.Arrays;
 public class ConnectionHandler implements Runnable {
 
 	public enum ServerType {
-		CONTROLLER, DSTORE
+		CONTROLLER, DSTORE_SERVER, DSTORE
 	}
 
 	public static final String NAME = ConnectionHandler.class.getName();
@@ -16,7 +16,7 @@ public class ConnectionHandler implements Runnable {
 	private BufferedReader in;
 	private ServerType serverType;
 	// TODO: BIG ASSUMPTION!, no new load between reloads
-	private ArrayList<Connection> dstores;
+	private ClientHandler loader;
 	private boolean isDstore;
 
 	public ConnectionHandler(Socket socket, ServerType serverType) {
@@ -34,24 +34,30 @@ public class ConnectionHandler implements Runnable {
 
 	@Override
 	public void run() {
-		dstores = new ArrayList<>();
 		try {
-			if (serverType == ServerType.CONTROLLER) {
-				readCommands(controllerParser);
-			} else {
-				readCommands(dstoreParser);
+			switch (serverType) {
+				case CONTROLLER:
+					readCommands(controllerParser);
+					break;
+				case DSTORE_SERVER:
+				case DSTORE:
+					// TODO: separate
+					readCommands(dstoreParser);
+					break;
 			}
 		} catch (IOException e) {
-			TerminalLog.printErr(NAME, connection.getPort() + " - Failed to read input from the connection!");
+			TerminalLog.printHandlerErrMes(NAME, connection.getPort(), "Failed to read input from the connection!");
 			e.printStackTrace();
 		} finally {
 			try {
-				TerminalLog.printMes(NAME, connection.getPort() + " - Closing down the connection");
+				TerminalLog.printHandlerMes(NAME, connection.getPort(), "Closing down the connection");
+
 				if (isDstore) {
-					TerminalLog.printMes(NAME,
-							connection.getPort() + " - Connection was a dstore! Removing the dstore from the list");
+					TerminalLog.printHandlerMes(NAME, connection.getPort(),
+							"Connection was a dstore! Removing the dstore from the list");
 					Controller.removeDstore(connection);
 				}
+
 				connection.close();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -60,15 +66,15 @@ public class ConnectionHandler implements Runnable {
 	}
 
 	public void readCommands(CommandParser parser) throws IOException {
-		TerminalLog.printMes(NAME, connection.getPort() + " - Waiting for the command");
+		TerminalLog.printHandlerMes(NAME, connection.getPort(), "Waiting for the command");
 		String line;
 
 		while ((line = in.readLine()) != null) {
 
-			TerminalLog.printMes(NAME, connection.getPort() + " - Command successfully read!");
+			TerminalLog.printHandlerMes(NAME, connection.getPort(), "Command successfully read!");
 
 			String[] command = line.split(" ");
-			TerminalLog.printMes(NAME, connection.getPort() + " Command: " + Arrays.toString(command));
+			TerminalLog.printHandlerMes(NAME, connection.getPort(), "Command: " + Arrays.toString(command));
 			Handler handler = parser.parse(command, TerminalLog.stampMes(line));
 
 			String[] args = Arrays.copyOfRange(command, 1, command.length);
@@ -76,13 +82,13 @@ public class ConnectionHandler implements Runnable {
 			if (handler != null) {
 				handler.handle(args, connection);
 			} else {
-				TerminalLog.printMes(NAME, connection.getPort() + " - Ignoring the command");
+				TerminalLog.printHandlerMes(NAME, connection.getPort(), "No handler, ignoring the command");
 			}
 
-			TerminalLog.printMes(NAME, connection.getPort() + " - Waiting for the command");
+			TerminalLog.printHandlerMes(NAME, connection.getPort(), "Waiting for the command");
 		}
 
-		TerminalLog.printMes(NAME, connection.getPort() + "- terminated connection");
+		TerminalLog.printHandlerMes(NAME, connection.getPort(), "Terminated connection");
 	}
 
 	public CommandParser dstoreParser = (String[] command, String mes) -> {
@@ -133,31 +139,13 @@ public class ConnectionHandler implements Runnable {
 				isDstore = false;
 				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");
 
+				// TODO: ughh assumption here that args are fine
+				loader = new ClientHandler(command[1]);
+
 				if (!Controller.isEnoughDstores()) {
 					return ClientHandler.notEnoughDstoresHandler;
 				} else {
-					return (String[] args, Connection connection) -> {
-						String filename = args[0];
-
-						if (!Controller.indexExists(filename)
-								|| Controller.getIndexState(filename) == Index.State.STORE_IN_PROGRESS
-								|| Controller.getIndexState(filename) == Index.State.REMOVE_IN_PROGRESS) {
-							TerminalLog.printErr("LoadHandler",
-									connection.getPort() + " - File '" + filename + "' doesn't exist");
-							ControllerLogger.getInstance().messageSent(connection.getSocket(),
-									Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
-							connection.getOutWriter().println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
-							return;
-						}
-
-						dstores = Controller.getIndexServers(filename);
-						String[] argsUpdated = new String[args.length + 1];
-						for (int i = 0; i < args.length; i++) {
-							argsUpdated[i] = args[i];
-						}
-						argsUpdated[args.length] = Integer.toString(Controller.getDstoreServerPort(dstores.remove(0)));
-						ClientHandler.subLoadHandler.handle(argsUpdated, connection);
-					};
+					return loader.loadHandler;
 				}
 			case Protocol.RELOAD_TOKEN:
 				TerminalLog.printMes(NAME, connection.getPort() + " - Client Request!");
@@ -169,30 +157,10 @@ public class ConnectionHandler implements Runnable {
 					return (String[] args, Connection connection) -> connection.getOutWriter()
 							.println(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
 				} else {
-					if (dstores.size() == 0) {
-						return (String[] args, Connection connection) -> connection.getOutWriter()
-								.println(Protocol.ERROR_LOAD_TOKEN);
+					if (loader.getDstoresLoad().size() == 0) {
+						return ClientHandler.errorLoadingHandler;
 					}
-					return (String[] args, Connection connection) -> {
-						String filename = args[0];
-						if (!Controller.indexExists(filename)
-								|| Controller.getIndexState(filename) == Index.State.STORE_IN_PROGRESS
-								|| Controller.getIndexState(filename) == Index.State.REMOVE_IN_PROGRESS) {
-							TerminalLog.printErr("LoadHandler",
-									connection.getPort() + " - File '" + filename + "' doesn't exist");
-							ControllerLogger.getInstance().messageSent(connection.getSocket(),
-									Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN);
-							connection.getOutWriter().println(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN);
-							return;
-						}
-
-						String[] argsUpdated = new String[args.length + 1];
-						for (int i = 0; i < args.length; i++) {
-							argsUpdated[i] = args[i];
-						}
-						argsUpdated[args.length] = Integer.toString(Controller.getDstoreServerPort(dstores.remove(0)));
-						ClientHandler.subLoadHandler.handle(argsUpdated, connection);
-					};
+					return loader.loadHandler;
 				}
 
 			case Protocol.STORE_TOKEN:

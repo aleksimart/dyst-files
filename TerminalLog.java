@@ -27,6 +27,16 @@ public class TerminalLog {
 		return (timeStamp + ": " + mes);
 	}
 
+	public static void printHandlerMes(String handlerName, int port, String mes) {
+		String timeStamp = new SimpleDateFormat(DATE_FORMAT).format(Calendar.getInstance().getTime());
+		System.out.println("[" + handlerName + ": " + timeStamp + "]: [ " + port + " ] -> " + mes);
+	}
+
+	public static void printHandlerErrMes(String handlerName, int port, String mes) {
+		String timeStamp = new SimpleDateFormat(DATE_FORMAT).format(Calendar.getInstance().getTime());
+		System.err.println("[" + handlerName + ": " + timeStamp + "]: [ " + port + " ] -> " + mes);
+	}
+
 	public static void interactiveCommands(String name, PrintWriter out) throws IOException {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 

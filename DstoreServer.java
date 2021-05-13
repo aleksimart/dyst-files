@@ -25,7 +25,7 @@ public class DstoreServer implements Runnable {
 				Socket client = ss.accept();
 				TerminalLog.printMes(NAME, "New connection from port " + client.getPort());
 				TerminalLog.printMes(NAME, "Transfering control to handler to determine the type of the connection");
-				new Thread(new ConnectionHandler(client, ConnectionHandler.ServerType.DSTORE)).start();
+				new Thread(new ConnectionHandler(client, ConnectionHandler.ServerType.DSTORE_SERVER)).start();
 			}
 		} catch (IOException e) {
 			TerminalLog.printErr(NAME, "Error: " + e + ", closing the server");
